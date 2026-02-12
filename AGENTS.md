@@ -86,3 +86,13 @@ Restrictions:
 - Ensure branch is up to date with `main`.
 - Request required review/approval if configured.
 - If blocked by policy mismatch, open a dedicated policy PR rather than bypassing rules.
+
+## 6) Updating private-core pointer
+
+Run:
+
+```bash
+./scripts/update-private-core-pointer.sh
+```
+
+Any `private-core` update must be delivered as a dedicated PR in this public repository that only updates the submodule pointer.
