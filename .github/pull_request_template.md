@@ -1,0 +1,4 @@
+- [ ] CI зелёный
+- [ ] Leak scan pass
+- [ ] Smoke check pass
+- [ ] Не трогали private-core данные
