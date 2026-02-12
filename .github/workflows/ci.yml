@@ -69,5 +69,6 @@ jobs:
 
           grep -Fq "[DEV] Loaded private core" index.html
           grep -Fq "[PROD] Loaded sample core" index.html
+          grep -Fq "[SECURE] Loaded private core from backend" index.html
 
           echo "Smoke check passed"

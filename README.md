@@ -50,6 +50,12 @@ npx serve .
 python3 -m http.server 8000
 ```
 
+3. Полноценный secure-режим (frontend + private backend):
+
+```bash
+./start.command
+```
+
 ## Stop server
 
 `Ctrl+C`
@@ -74,6 +80,27 @@ Pre-commit hook создаётся автоматически через script:
 Он выполняет:
 - leak scan по всему репозиторию (не только staged)
 - smoke check структуры (`index.html`, sample core) и DEV/PROD loader строк в `index.html`
+
+## Secure full-mode
+
+- По умолчанию `github.io` работает как demo (sample core).
+- Для приватного полного режима используйте:
+  - `?mode=secure`
+  - `backendOrigin` (если backend на другом домене/порту)
+  - `coreKey` (если на backend задан `CORE_ACCESS_KEY`)
+
+Примеры:
+
+```text
+http://localhost:5173/index.html?mode=secure
+http://localhost:5173/index.html?mode=secure&backendOrigin=http://localhost:8787
+http://localhost:5173/index.html?mode=secure&backendOrigin=http://localhost:8787&coreKey=change_me
+```
+
+Backend переменные (`server/.env`):
+- `OPENAI_API_KEY`
+- `FRONT_ORIGIN`
+- `CORE_ACCESS_KEY` (опционально, включает защиту `/core/*`)
 
 ## Live demo
 

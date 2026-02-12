@@ -935,6 +935,51 @@
   }
 
   var host = String((window.location && window.location.hostname) || "").toLowerCase();
+  var params = new URLSearchParams(String(location.search || ""));
+  var modeParam = String(params.get("mode") || "").toLowerCase();
+  var secureMode = modeParam === "secure" || params.get("secure") === "1" || window.PROMPT_BUILDER_SECURE_MODE === true;
+  var backendOrigin = params.get("backendOrigin") || window.PROMPT_BUILDER_BACKEND_ORIGIN;
+  if (typeof backendOrigin !== "string" || !backendOrigin.trim()) {
+    var isLocalHost = host === "localhost" || host === "127.0.0.1";
+    backendOrigin = isLocalHost ? "http://localhost:8787" : location.origin;
+  }
+  backendOrigin = String(backendOrigin).replace(/\/+$/, "");
+
+  var coreKey = params.get("coreKey") || window.PROMPT_BUILDER_CORE_KEY || "";
+  if (!coreKey) {
+    try {
+      coreKey = localStorage.getItem("promptBuilder.coreKey") || "";
+    } catch (_err) {
+      coreKey = "";
+    }
+  }
+  if (params.get("coreKey")) {
+    try {
+      localStorage.setItem("promptBuilder.coreKey", params.get("coreKey"));
+    } catch (_err) {
+      // ignore storage errors
+    }
+  }
+
+  function withCoreKey(url) {
+    if (!coreKey) return url;
+    var sep = url.indexOf("?") >= 0 ? "&" : "?";
+    return url + sep + "k=" + encodeURIComponent(coreKey);
+  }
+
+  var secureMatricesUrl = withCoreKey(backendOrigin + "/core/matrices.js");
+  var secureConstraintsUrl = withCoreKey(backendOrigin + "/core/constraints.js");
+
+  window.__secureCoreMode = secureMode;
+
+  if (secureMode) {
+    window.__coreLoadFailed = false;
+    writeScript(secureMatricesUrl, "window.__coreLoadFailed=true;console.error('[SECURE] Failed to load private /core/matrices.js')");
+    writeScript(secureConstraintsUrl, "window.__coreLoadFailed=true;console.error('[SECURE] Failed to load private /core/constraints.js')");
+    document.write('<script>if(window.__coreLoadFailed){console.error("[SECURE] Private core unavailable")}else{console.log("[SECURE] Loaded private core from backend")}<' + "/script>");
+    return;
+  }
+
   var forceSample = host.endsWith("github.io");
 
   // Always load sample core first to guarantee public/Pages availability.
@@ -957,7 +1002,16 @@
 window.PROFILES_DATA = window.PROFILES_DATA || {};
 window.PROMPT_CONSTRAINTS = window.PROMPT_CONSTRAINTS || {};
 if (!Object.keys(window.PROFILES_DATA).length || !Object.keys(window.PROMPT_CONSTRAINTS).length) {
-  console.error("[CORE] Core data is missing after loader initialization");
+  if (window.__secureCoreMode) {
+    var statusEl = document.getElementById("status");
+    if (statusEl) statusEl.textContent = "Secure core unavailable: check backendOrigin/coreKey and reload.";
+    var promptEl = document.getElementById("prompt");
+    if (promptEl) promptEl.value = "Secure core unavailable. Check backendOrigin/coreKey and reload.";
+    console.error("[SECURE] Core data is missing after secure loader initialization");
+    throw new Error("Secure core unavailable");
+  } else {
+    console.error("[CORE] Core data is missing after loader initialization");
+  }
 }
 const RAW_PROFILES = window.PROFILES_DATA;
 const PHONE_KIT = {
