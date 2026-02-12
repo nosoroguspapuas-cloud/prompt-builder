@@ -35,3 +35,21 @@ git commit -m "Initial version"
 node -v
 npm -v
 ```
+
+## Local run
+
+1. Запуск через `serve` (порт по умолчанию):
+
+```bash
+npx serve .
+```
+
+2. Запуск через Python на порту `8000`:
+
+```bash
+python3 -m http.server 8000
+```
+
+## Stop server
+
+`Ctrl+C`
