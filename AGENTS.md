@@ -8,7 +8,7 @@ It must remain safe for open access, demos, and collaboration.
 ## 2) Global Rules
 
 - All changes go through Pull Requests (PR). Direct pushes to `main` are not allowed.
-- Branch naming format: `agent/<role>/<issue>-<slug>`.
+- Branch naming format: `codex/<role>/<issue>-<slug>` (preferred) or `agent/<role>/<issue>-<slug>` (legacy).
 - Secrets and forbidden files are prohibited in this repository.
   - Any files under `private/`
   - Any files under `private-core/` (except tracked submodule pointer updates)

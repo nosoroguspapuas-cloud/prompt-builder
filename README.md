@@ -1,96 +1,95 @@
-# README
+# Prompt Builder
 
-## 1) Как открыть проект в VS Code
+Public Prompt Builder UI with sample core fallback.
 
-1. Откройте терминал в папке проекта.
-2. Выполните:
+## Requirements
 
-```bash
-code .
-```
+- Node.js + npm
+- Python 3 (используется в `start.command` для локального статического сервера)
 
-## 2) Как проверить, что git работает
+Node version:
 
 ```bash
-git status
+nvm use
 ```
 
-## 3) Как сделать первый коммит
-
-1. Добавьте все файлы:
+## Install
 
 ```bash
-git add .
+npm --prefix server ci
+npm --prefix frontend ci
 ```
 
-2. Сделайте коммит:
+## Run locally
 
-```bash
-git commit -m "Initial version"
-```
-
-## 4) Как проверить Node
-
-```bash
-node -v
-npm -v
-```
-
-## Local run
-
-1. Запуск через `serve` (порт по умолчанию):
-
-```bash
-npx serve .
-```
-
-2. Запуск через Python на порту `8000`:
-
-```bash
-python3 -m http.server 8000
-```
-
-3. Полноценный secure-режим (frontend + private backend):
+### Secure full mode (recommended)
 
 ```bash
 ./start.command
 ```
 
-## Stop server
+Остановка:
 
-`Ctrl+C`
+```bash
+./stop.command
+```
+
+### Backend only
+
+```bash
+npm run dev
+```
+
+### Frontend static only
+
+```bash
+npm run frontend:serve
+```
+
+## Checks
+
+```bash
+npm run check
+```
+
+Что проверяется:
+- синтаксис backend (`node --check`)
+- регрессионные проверки в `test.js`
 
 ## Leak protection
 
-Pre-commit hook создаётся автоматически через script:
+Проверка staged-файлов:
 
 ```bash
-./scripts/precommit-check.sh --install-hook
+./scripts/precommit-check.sh
 ```
 
-Этот hook блокирует коммиты, если в staged есть:
+Установка pre-commit hook:
+
+```bash
+npm run hook:install
+```
+
+Hook блокирует коммит, если в staged есть:
 - `private/` и `private-core/`
-- `.env*` и `*.env`
+- `.env*` и `*.env` (кроме `.env.example`)
 - `*.key` и `*.pem`
 - корневые `matrices.js` и `constraints.js`
 
 ## CI
 
-Для `pull_request` и `push` в `main` запускается GitHub Actions workflow `CI`.
-Он выполняет:
-- leak scan по всему репозиторию (не только staged)
-- smoke check структуры (`index.html`, sample core) и DEV/PROD loader строк в `index.html`
+Workflow `CI` для `pull_request` и `push` в `main` выполняет:
+- leak scan по репозиторию
+- установку backend-зависимостей
+- backend syntax check + `test.js`
+- smoke check структуры и loader-маркеров в `index.html`
 
-## Secure full-mode
+## Secure mode query params
 
-- На `github.io` по умолчанию работает demo-режим (sample core).
-- На любом другом хосте full secure-режим включается по умолчанию.
-- Для принудительного переключения:
-  - `?mode=secure` — full secure
-  - `?mode=demo` — demo sample
-- Дополнительно:
-  - `backendOrigin` (если backend на другом домене/порту)
-  - `coreKey` (если на backend задан `CORE_ACCESS_KEY`)
+- `mode=secure` - full secure
+- `mode=demo` - sample/demo mode
+- `backendOrigin` - backend origin (если backend не на том же host)
+- `coreKey` - ключ доступа, если на backend задан `CORE_ACCESS_KEY`
 
 Примеры:
 
@@ -100,21 +99,3 @@ http://localhost:5173/index.html?mode=secure&backendOrigin=http://localhost:8787
 http://localhost:5173/index.html?mode=secure&backendOrigin=http://localhost:8787&coreKey=change_me
 http://localhost:5173/index.html?mode=demo
 ```
-
-Backend переменные (`server/.env`):
-- `OPENAI_API_KEY`
-- `FRONT_ORIGIN`
-- `CORE_ACCESS_KEY` (опционально, включает защиту `/core/*`)
-
-## Full host deployment
-
-- Backend теперь может отдавать UI сам:
-  - `GET /` и `GET /index.html` -> `index.html`
-  - `GET /sample/*` -> demo assets
-  - `GET /refs/*` -> refs assets
-- Для полнофункционального прод-хоста запускайте Node backend и открывайте его домен напрямую.
-- Если задан `CORE_ACCESS_KEY`, передавайте `coreKey` в URL или через `localStorage`/JS-конфиг.
-
-## Live demo
-
-GitHub Pages: https://nosoroguspapuas-cloud.github.io/prompt-builder/ (placeholder)

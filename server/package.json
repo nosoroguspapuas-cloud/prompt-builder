@@ -1,16 +1,17 @@
 {
-  "name": "prompt-builder-local-vision-server",
+  "name": "prompt-builder-server",
   "version": "1.0.0",
   "private": true,
-  "description": "Local Ollama vision backend for Character Master generation",
+  "description": "Local backend for Prompt Builder secure core and static hosting",
   "main": "server.js",
   "scripts": {
-    "dev": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "express": "^4.21.2",
-    "multer": "^1.4.5-lts.1"
+    "express": "^4.21.2"
   }
 }
