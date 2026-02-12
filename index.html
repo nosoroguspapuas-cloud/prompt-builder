@@ -940,17 +940,6 @@
   var sampleMatricesUrl = new URL("sample/matrices.sample.js", baseUrl).toString();
   var sampleConstraintsUrl = new URL("sample/constraints.sample.js", baseUrl).toString();
 
-  function exists(url) {
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open("HEAD", url, false);
-      xhr.send(null);
-      return xhr.status >= 200 && xhr.status < 400;
-    } catch (err) {
-      return false;
-    }
-  }
-
   function writeScript(src, onErrorCode) {
     var attrs = ' src="' + src + '"';
     if (onErrorCode) attrs += ' onerror="' + onErrorCode + '"';
@@ -959,20 +948,21 @@
 
   var host = String((window.location && window.location.hostname) || "").toLowerCase();
   var forceSample = host.endsWith("github.io");
-  var usePrivate = !forceSample && exists(privateMatricesUrl) && exists(privateConstraintsUrl);
 
   // Always load sample core first to guarantee public/Pages availability.
   writeScript(sampleMatricesUrl, "console.error('[PROD] Failed to load sample/matrices.sample.js')");
   writeScript(sampleConstraintsUrl, "console.error('[PROD] Failed to load sample/constraints.sample.js')");
 
-  if (usePrivate) {
-    // In local DEV, override sample data with private core when available.
-    writeScript(privateMatricesUrl, "console.error('[DEV] Failed to load matrices.js')");
-    writeScript(privateConstraintsUrl, "console.error('[DEV] Failed to load constraints.js')");
-    document.write('<script>console.log("[DEV] Loaded private core")<\\/script>');
-  } else {
+  if (forceSample) {
     document.write('<script>console.log("[PROD] Loaded sample core")<\\/script>');
+    return;
   }
+
+  // In local DEV, try to override sample data with private core.
+  window.__privateCoreFailed = false;
+  writeScript(privateMatricesUrl, "window.__privateCoreFailed=true;console.error('[DEV] Failed to load matrices.js')");
+  writeScript(privateConstraintsUrl, "window.__privateCoreFailed=true;console.error('[DEV] Failed to load constraints.js')");
+  document.write('<script>if(window.__privateCoreFailed){console.log("[PROD] Loaded sample core")}else{console.log("[DEV] Loaded private core")}<\\/script>');
 })();
 </script>
 <script>
