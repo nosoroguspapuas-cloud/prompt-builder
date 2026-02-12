@@ -3170,11 +3170,14 @@ function buildPrompt(options = {}) {
   const skipSanitize = Boolean(options?.skipSanitize);
   const skipEnforce = Boolean(options?.skipEnforce);
   const skipAutoRules = Boolean(options?.skipAutoRules);
+  const skipCameraSync = Boolean(options?.skipCameraSync);
 
   if (!skipSanitize) {
     sanitizeStateByScenario(profile, s, scenario);
   }
-  syncCameraToSelection(profile, s, getCamera(currentProfileKey));
+  if (!skipCameraSync) {
+    syncCameraToSelection(profile, s, getCamera(currentProfileKey));
+  }
 
   if (!skipEnforce) {
     const cameraAdjusted = enforceCameraCompatibility(profile, s);
@@ -3470,7 +3473,7 @@ function onCameraInputsChanged(source = "camera/input") {
   updateCameraFromInputs(source);
   saveCameraState();
   renderCameraControls();
-  buildPrompt({ source, skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+  buildPrompt({ source, skipAutoRules: true, skipEnforce: true, skipSanitize: true, skipCameraSync: true });
   assertCameraDidNotChangeSelection(snapshotBefore, source);
 }
 
@@ -3488,7 +3491,7 @@ function runCameraDistanceRepro() {
       );
       saveCameraState();
       renderCameraControls();
-      buildPrompt({ source, skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+      buildPrompt({ source, skipAutoRules: true, skipEnforce: true, skipSanitize: true, skipCameraSync: true });
       assertCameraDidNotChangeSelection(before, source);
     });
     els.status.textContent = "DEBUG: repro x10 OK";
@@ -3499,7 +3502,7 @@ function runCameraDistanceRepro() {
     setByPath(`cameraState.${currentProfileKey}`, originalCamera, "camera/repro-restore");
     saveCameraState();
     renderCameraControls();
-    buildPrompt({ source: "camera/repro-restore", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+    buildPrompt({ source: "camera/repro-restore", skipAutoRules: true, skipEnforce: true, skipSanitize: true, skipCameraSync: true });
   }
 }
 
@@ -3517,7 +3520,7 @@ function runCameraIsolationChecks() {
       normalizeCamera({ ...getCamera(currentProfileKey), distanceM: 4.2 }),
       "camera/check-distance"
     );
-    buildPrompt({ source: "camera/check-distance", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+    buildPrompt({ source: "camera/check-distance", skipAutoRules: true, skipEnforce: true, skipSanitize: true, skipCameraSync: true });
     const diffA = selectionDiff(beforeA, captureSelectionSnapshot());
     checks.push({ test: "A: changeDistance() keeps location/accessories", ok: diffA.length === 0 });
 
@@ -3527,7 +3530,7 @@ function runCameraIsolationChecks() {
       normalizeCamera({ ...getCamera(currentProfileKey), focalMm: 70 }),
       "camera/check-focal"
     );
-    buildPrompt({ source: "camera/check-focal", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+    buildPrompt({ source: "camera/check-focal", skipAutoRules: true, skipEnforce: true, skipSanitize: true, skipCameraSync: true });
     const diffB = selectionDiff(beforeB, captureSelectionSnapshot());
     checks.push({ test: "B: changeFocal() keeps location/accessories", ok: diffB.length === 0 });
 
@@ -3560,7 +3563,7 @@ function runCameraIsolationChecks() {
     saveCameraState();
     renderBlocks();
     renderCameraControls();
-    buildPrompt({ source: "camera/check-restore", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+    buildPrompt({ source: "camera/check-restore", skipAutoRules: true, skipEnforce: true, skipSanitize: true, skipCameraSync: true });
   }
 }
 
