@@ -937,7 +937,10 @@
   var host = String((window.location && window.location.hostname) || "").toLowerCase();
   var params = new URLSearchParams(String(location.search || ""));
   var modeParam = String(params.get("mode") || "").toLowerCase();
-  var secureMode = modeParam === "secure" || params.get("secure") === "1" || window.PROMPT_BUILDER_SECURE_MODE === true;
+  var isPublicPages = host.endsWith("github.io");
+  var forceDemoMode = modeParam === "demo" || params.get("demo") === "1" || window.PROMPT_BUILDER_DEMO_MODE === true;
+  var explicitSecureMode = modeParam === "secure" || params.get("secure") === "1" || window.PROMPT_BUILDER_SECURE_MODE === true;
+  var secureMode = explicitSecureMode || (!isPublicPages && !forceDemoMode);
   var backendOrigin = params.get("backendOrigin") || window.PROMPT_BUILDER_BACKEND_ORIGIN;
   if (typeof backendOrigin !== "string" || !backendOrigin.trim()) {
     var isLocalHost = host === "localhost" || host === "127.0.0.1";
@@ -980,9 +983,9 @@
     return;
   }
 
-  var forceSample = host.endsWith("github.io");
+  var forceSample = isPublicPages || forceDemoMode;
 
-  // Always load sample core first to guarantee public/Pages availability.
+  // Demo mode (Pages/public) loads sample core.
   writeScript(sampleMatricesUrl, "console.error('[PROD] Failed to load sample/matrices.sample.js')");
   writeScript(sampleConstraintsUrl, "console.error('[PROD] Failed to load sample/constraints.sample.js')");
 

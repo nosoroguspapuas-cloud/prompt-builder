@@ -10,6 +10,10 @@ const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
 const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 240000);
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const OPENAI_MODEL = "gpt-4.1-mini";
+const REPO_ROOT = path.resolve(__dirname, "..");
+const INDEX_HTML_PATH = path.resolve(REPO_ROOT, "index.html");
+const SAMPLE_DIR = path.resolve(REPO_ROOT, "sample");
+const REFS_DIR = path.resolve(REPO_ROOT, "refs");
 const PRIVATE_CORE_DIR = path.resolve(__dirname, "..", "private-core", "private");
 const CORE_ACCESS_KEY = String(process.env.CORE_ACCESS_KEY || "").trim();
 
@@ -39,6 +43,30 @@ app.use(
 );
 
 app.use(express.json({ limit: "1mb" }));
+
+app.get("/", (_req, res) => {
+  res.sendFile(INDEX_HTML_PATH);
+});
+
+app.get("/index.html", (_req, res) => {
+  res.sendFile(INDEX_HTML_PATH);
+});
+
+app.use(
+  "/sample",
+  express.static(SAMPLE_DIR, {
+    fallthrough: true,
+    maxAge: "5m",
+  })
+);
+
+app.use(
+  "/refs",
+  express.static(REFS_DIR, {
+    fallthrough: true,
+    maxAge: "30d",
+  })
+);
 
 function getCorePath(fileName) {
   const resolved = path.resolve(PRIVATE_CORE_DIR, fileName);

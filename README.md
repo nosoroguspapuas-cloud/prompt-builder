@@ -83,24 +83,37 @@ Pre-commit hook создаётся автоматически через script:
 
 ## Secure full-mode
 
-- По умолчанию `github.io` работает как demo (sample core).
-- Для приватного полного режима используйте:
-  - `?mode=secure`
+- На `github.io` по умолчанию работает demo-режим (sample core).
+- На любом другом хосте full secure-режим включается по умолчанию.
+- Для принудительного переключения:
+  - `?mode=secure` — full secure
+  - `?mode=demo` — demo sample
+- Дополнительно:
   - `backendOrigin` (если backend на другом домене/порту)
   - `coreKey` (если на backend задан `CORE_ACCESS_KEY`)
 
 Примеры:
 
 ```text
-http://localhost:5173/index.html?mode=secure
+http://localhost:5173/index.html
 http://localhost:5173/index.html?mode=secure&backendOrigin=http://localhost:8787
 http://localhost:5173/index.html?mode=secure&backendOrigin=http://localhost:8787&coreKey=change_me
+http://localhost:5173/index.html?mode=demo
 ```
 
 Backend переменные (`server/.env`):
 - `OPENAI_API_KEY`
 - `FRONT_ORIGIN`
 - `CORE_ACCESS_KEY` (опционально, включает защиту `/core/*`)
+
+## Full host deployment
+
+- Backend теперь может отдавать UI сам:
+  - `GET /` и `GET /index.html` -> `index.html`
+  - `GET /sample/*` -> demo assets
+  - `GET /refs/*` -> refs assets
+- Для полнофункционального прод-хоста запускайте Node backend и открывайте его домен напрямую.
+- Если задан `CORE_ACCESS_KEY`, передавайте `coreKey` в URL или через `localStorage`/JS-конфиг.
 
 ## Live demo
 
