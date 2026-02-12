@@ -32,6 +32,11 @@ blocked_files=()
 
 while IFS= read -r file; do
   case "$file" in
+    .env.example|*/.env.example)
+      continue
+      ;;
+  esac
+  case "$file" in
     private/*)
       blocked_files+=("$file (private/ is protected)")
       ;;
