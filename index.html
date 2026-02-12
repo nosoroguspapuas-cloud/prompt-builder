@@ -914,20 +914,6 @@
 
 <script>
 (function () {
-  var path = String(location.pathname || "/");
-  if (!path.endsWith("/")) {
-    if (/\/[^/]+\.[^/]+$/.test(path)) {
-      path = path.replace(/\/[^/]+$/, "/");
-    } else {
-      path = path + "/";
-    }
-  }
-  var baseUrl = new URL(path, location.origin).toString();
-  var privateMatricesUrl = new URL("matrices.js", baseUrl).toString();
-  var privateConstraintsUrl = new URL("constraints.js", baseUrl).toString();
-  var sampleMatricesUrl = new URL("sample/matrices.sample.js", baseUrl).toString();
-  var sampleConstraintsUrl = new URL("sample/constraints.sample.js", baseUrl).toString();
-
   function writeScript(src, onErrorCode) {
     var attrs = ' src="' + src + '"';
     if (onErrorCode) attrs += ' onerror="' + onErrorCode + '"';
@@ -935,29 +921,39 @@
   }
 
   var host = String((window.location && window.location.hostname) || "").toLowerCase();
-  var forceSample = host.endsWith("github.io");
+  var isPublicPages = host.endsWith("github.io");
+  var params = new URLSearchParams(String(location.search || ""));
+  var backendOrigin = params.get("backendOrigin") || window.PROMPT_BUILDER_BACKEND_ORIGIN;
+  if (typeof backendOrigin !== "string" || !backendOrigin.trim()) {
+    var isLocalHost = host === "localhost" || host === "127.0.0.1";
+    backendOrigin = isLocalHost ? "http://localhost:8787" : location.origin;
+  }
+  backendOrigin = String(backendOrigin).replace(/\/+$/, "");
+  var coreMatricesUrl = backendOrigin + "/core/matrices.js";
+  var coreConstraintsUrl = backendOrigin + "/core/constraints.js";
 
-  // Always load sample core first to guarantee public/Pages availability.
-  writeScript(sampleMatricesUrl, "console.error('[PROD] Failed to load sample/matrices.sample.js')");
-  writeScript(sampleConstraintsUrl, "console.error('[PROD] Failed to load sample/constraints.sample.js')");
-
-  if (forceSample) {
-    document.write('<script>console.log("[PROD] Loaded sample core")<' + "/script>");
+  if (isPublicPages) {
+    window.__coreLoadFailed = true;
+    document.write('<script>console.error("[SECURITY] Public Pages build does not expose private core. Use private backend deployment.")<' + "/script>");
     return;
   }
 
-  // In local DEV, try to override sample data with private core.
-  window.__privateCoreFailed = false;
-  writeScript(privateMatricesUrl, "window.__privateCoreFailed=true;console.error('[DEV] Failed to load matrices.js')");
-  writeScript(privateConstraintsUrl, "window.__privateCoreFailed=true;console.error('[DEV] Failed to load constraints.js')");
-  document.write('<script>if(window.__privateCoreFailed){console.log("[PROD] Loaded sample core")}else{console.log("[DEV] Loaded private core")}<' + "/script>");
+  window.__coreLoadFailed = false;
+  writeScript(coreMatricesUrl, "window.__coreLoadFailed=true;console.error('[CORE] Failed to load /core/matrices.js')");
+  writeScript(coreConstraintsUrl, "window.__coreLoadFailed=true;console.error('[CORE] Failed to load /core/constraints.js')");
+  document.write('<script>if(window.__coreLoadFailed){console.error("[CORE] Private backend core is unavailable")}else{console.log("[SECURE] Loaded core from private backend")}<' + "/script>");
 })();
 </script>
 <script>
 window.PROFILES_DATA = window.PROFILES_DATA || {};
 window.PROMPT_CONSTRAINTS = window.PROMPT_CONSTRAINTS || {};
 if (!Object.keys(window.PROFILES_DATA).length || !Object.keys(window.PROMPT_CONSTRAINTS).length) {
+  var statusEl = document.getElementById("status");
+  if (statusEl) statusEl.textContent = "Core unavailable: start private backend and reload.";
+  var promptEl = document.getElementById("prompt");
+  if (promptEl) promptEl.value = "Private core unavailable. Run backend and reload.";
   console.error("[CORE] Core data is missing after loader initialization");
+  throw new Error("Core unavailable");
 }
 const RAW_PROFILES = window.PROFILES_DATA;
 const PHONE_KIT = {

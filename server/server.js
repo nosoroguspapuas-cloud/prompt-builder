@@ -1,4 +1,6 @@
-require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
@@ -8,6 +10,7 @@ const MAX_FILE_SIZE_MB = Number(process.env.MAX_FILE_SIZE_MB || 10);
 const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 240000);
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const OPENAI_MODEL = "gpt-4.1-mini";
+const PRIVATE_CORE_DIR = path.resolve(__dirname, "..", "private-core", "private");
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -35,6 +38,30 @@ app.use(
 );
 
 app.use(express.json({ limit: "1mb" }));
+
+function getCorePath(fileName) {
+  const resolved = path.resolve(PRIVATE_CORE_DIR, fileName);
+  const expectedPrefix = PRIVATE_CORE_DIR + path.sep;
+  if (!resolved.startsWith(expectedPrefix)) return null;
+  return resolved;
+}
+
+function sendCoreScript(res, fileName) {
+  const corePath = getCorePath(fileName);
+  if (!corePath) {
+    return res.status(400).json({ error: "INVALID_CORE_PATH" });
+  }
+  if (!fs.existsSync(corePath)) {
+    return res.status(503).json({
+      error: "CORE_UNAVAILABLE",
+      message: "Private core is not available on this deployment.",
+    });
+  }
+  const body = fs.readFileSync(corePath, "utf8");
+  res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  return res.status(200).send(body);
+}
 
 function appError(code, message, status = 500) {
   const error = new Error(message);
@@ -158,6 +185,21 @@ app.get("/health", (_req, res) => {
   }
   return res.json({ ok: true });
 });
+
+app.get("/core/health", (_req, res) => {
+  const matricesPath = getCorePath("matrices.js");
+  const constraintsPath = getCorePath("constraints.js");
+  const ok = Boolean(
+    matricesPath
+      && constraintsPath
+      && fs.existsSync(matricesPath)
+      && fs.existsSync(constraintsPath)
+  );
+  return res.json({ ok });
+});
+
+app.get("/core/matrices.js", (_req, res) => sendCoreScript(res, "matrices.js"));
+app.get("/core/constraints.js", (_req, res) => sendCoreScript(res, "constraints.js"));
 
 app.post("/describe", upload.single("image"), async (req, res) => {
   const reqId = Date.now().toString(36);
