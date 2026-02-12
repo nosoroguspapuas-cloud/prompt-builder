@@ -50,6 +50,14 @@ jobs:
             forbidden+="constraints.js (root core file)"$'\n'
           fi
 
+          if [[ -f sample/matrices.sample.js ]]; then
+            forbidden+="sample/matrices.sample.js (public sample core is forbidden)"$'\n'
+          fi
+
+          if [[ -f sample/constraints.sample.js ]]; then
+            forbidden+="sample/constraints.sample.js (public sample core is forbidden)"$'\n'
+          fi
+
           if [[ -n "$forbidden" ]]; then
             echo "Forbidden files detected:"
             printf '%s' "$forbidden"
@@ -64,10 +72,12 @@ jobs:
           set -euo pipefail
 
           test -f index.html
-          test -f sample/matrices.sample.js
-          test -f sample/constraints.sample.js
+          test -f server/server.js
+          test ! -f sample/matrices.sample.js
+          test ! -f sample/constraints.sample.js
 
-          grep -Fq "[DEV] Loaded private core" index.html
-          grep -Fq "[PROD] Loaded sample core" index.html
+          grep -Fq "/core/matrices.js" index.html
+          grep -Fq "/core/constraints.js" index.html
+          grep -Fq "[SECURE] Loaded core from private backend" index.html
 
           echo "Smoke check passed"
