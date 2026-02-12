@@ -912,18 +912,6 @@
     </div>
   </div>
 
-  <div class="debugPanel" id="debugPanel">
-    <div class="debugHead">
-      <strong>Debug: last changes</strong>
-      <div class="debugActions">
-        <button type="button" class="debugBtn" id="debugRunReproBtn">Repro x10</button>
-        <button type="button" class="debugBtn" id="debugRunChecksBtn">Run checks</button>
-        <button type="button" class="debugBtn" id="debugCopyBtn">Copy log</button>
-      </div>
-    </div>
-    <pre class="debugLog" id="debugLog"></pre>
-  </div>
-
 <script>
 (function () {
   var path = String(location.pathname || "/");
@@ -1017,7 +1005,7 @@ const STYLE_PACKS = {
     },
   },
 };
-const DEBUG = true;
+const DEBUG = false;
 const DEBUG_RING_MAX = 300;
 const debugEvents = [];
 const uiText = {
