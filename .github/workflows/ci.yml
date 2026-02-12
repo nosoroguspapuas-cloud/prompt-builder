@@ -36,7 +36,7 @@ jobs:
 
           while IFS= read -r path; do
             forbidden+="$path (.env pattern)"$'\n'
-          done < <(find . -type f \( -name '.env' -o -name '.env.*' -o -name '*.env' \) -not -path './.git/*')
+          done < <(find . -type f \( -name '.env' -o -name '.env.*' -o -name '*.env' \) -not -name '.env.example' -not -path './.git/*')
 
           while IFS= read -r path; do
             forbidden+="$path (key/pem)"$'\n'
