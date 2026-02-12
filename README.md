@@ -74,3 +74,7 @@ Pre-commit hook создаётся автоматически через script:
 Он выполняет:
 - leak scan по всему репозиторию (не только staged)
 - smoke check структуры (`index.html`, sample core) и DEV/PROD loader строк в `index.html`
+
+## Live demo
+
+GitHub Pages: https://nosoroguspapuas-cloud.github.io/prompt-builder/ (placeholder)
