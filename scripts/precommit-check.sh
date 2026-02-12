@@ -22,7 +22,7 @@ if [[ "${1:-}" == "--install-hook" ]]; then
   exit 0
 fi
 
-staged_files="$(git diff --cached --name-only --diff-filter=ACMR)"
+staged_files="$(git diff --cached --name-only)"
 
 if [[ -z "$staged_files" ]]; then
   exit 0
@@ -40,9 +40,6 @@ while IFS= read -r file; do
       ;;
     matrices.js|constraints.js)
       blocked_files+=("$file (root core file is protected)")
-      ;;
-    sample/matrices.sample.js|sample/constraints.sample.js)
-      blocked_files+=("$file (public sample core is forbidden)")
       ;;
     *.key|*.pem)
       blocked_files+=("$file (secret key material is protected)")

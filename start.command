@@ -12,8 +12,6 @@ FRONTEND_LOG="$PIDS_DIR/frontend.log"
 BACKEND_URL="http://localhost:8787"
 FRONTEND_URL="http://localhost:5173"
 SERVER_ENV_FILE="$ROOT_DIR/server/.env"
-CORE_MATRICES_FILE="$ROOT_DIR/private-core/private/matrices.js"
-CORE_CONSTRAINTS_FILE="$ROOT_DIR/private-core/private/constraints.js"
 MAX_BACKEND_RETRIES=2
 
 mkdir -p "$PIDS_DIR"
@@ -25,24 +23,6 @@ ensure_refs_dir() {
   # Keep /refs path available for python http.server from project root.
   if [[ -d "$ROOT_DIR/public/refs" ]]; then
     cp -R "$ROOT_DIR/public/refs/." "$ROOT_DIR/refs/" 2>/dev/null || true
-  fi
-}
-
-ensure_private_core_files() {
-  if [[ -f "$CORE_MATRICES_FILE" && -f "$CORE_CONSTRAINTS_FILE" ]]; then
-    return 0
-  fi
-
-  echo "Инициализация private-core submodule..."
-  git submodule update --init --recursive private-core >/dev/null 2>&1 || true
-
-  if [[ ! -f "$CORE_MATRICES_FILE" || ! -f "$CORE_CONSTRAINTS_FILE" ]]; then
-    echo "Ошибка: private core не найден."
-    echo "Ожидаются файлы:"
-    echo "- $CORE_MATRICES_FILE"
-    echo "- $CORE_CONSTRAINTS_FILE"
-    echo "Проверьте доступ к private-core submodule."
-    return 1
   fi
 }
 
@@ -166,12 +146,7 @@ mkdir -p "$PIDS_DIR"
 echo "Шаг 3/5: Подготовка статических папок refs/"
 ensure_refs_dir
 
-echo "Шаг 4/5: Проверка private-core"
-if ! ensure_private_core_files; then
-  exit 1
-fi
-
-echo "Шаг 5/5: Установка backend-зависимостей (если нужно)"
+echo "Шаг 4/5: Установка backend-зависимостей (если нужно)"
 if [[ ! -d "$ROOT_DIR/server/node_modules" ]]; then
   (
     cd "$ROOT_DIR/server"
@@ -181,7 +156,7 @@ else
   echo "Зависимости backend уже установлены."
 fi
 
-echo "Шаг 6/6: Запуск backend и frontend"
+echo "Шаг 5/5: Запуск backend и frontend"
 echo "==== $(date '+%Y-%m-%d %H:%M:%S') start.command run ====" >>"$BACKEND_LOG"
 echo "==== $(date '+%Y-%m-%d %H:%M:%S') start.command run ====" >>"$FRONTEND_LOG"
 
@@ -207,7 +182,7 @@ if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
   exit 1
 fi
 
-echo "Шаг 7/7: Health-check backend и frontend"
+echo "Шаг 6/6: Health-check backend и frontend"
 if ! curl -s "$BACKEND_URL/health" >/dev/null 2>&1; then
   echo "Ошибка: backend недоступен ($BACKEND_URL/health)."
   echo "Лог: $BACKEND_LOG"
