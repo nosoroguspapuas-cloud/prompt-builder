@@ -1,23 +1,17 @@
-# Локальный запуск (OpenAI Vision + backend + frontend)
+# Локальный запуск (backend + frontend)
 
-## Подготовка
+## Подготовка (опционально)
 
-1. Создайте файл `server/.env`:
+Если нужно задать CORS/Core-key, создайте `server/.env`:
 
 ```bash
 cp server/.env.example server/.env
 ```
 
-2. Вставьте ключ в `server/.env`:
-
-```env
-OPENAI_API_KEY=sk-...
-```
-
 ## One-click start (macOS)
 
 ```bash
-cd /Users/alexandrkorlykhanov/Desktop/prompt builder
+cd /Users/alexandrkorlykhanov/Desktop/PromptBuilder/prompt-builder
 chmod +x start.command stop.command restart.command
 ./start.command
 ```

@@ -11,7 +11,6 @@ BACKEND_LOG="$PIDS_DIR/backend.log"
 FRONTEND_LOG="$PIDS_DIR/frontend.log"
 BACKEND_URL="http://localhost:8787"
 FRONTEND_URL="http://localhost:5173"
-SERVER_ENV_FILE="$ROOT_DIR/server/.env"
 CORE_MATRICES_FILE="$ROOT_DIR/private-core/private/matrices.js"
 CORE_CONSTRAINTS_FILE="$ROOT_DIR/private-core/private/constraints.js"
 MAX_BACKEND_RETRIES=2
@@ -133,7 +132,7 @@ start_backend_with_retry() {
   return 1
 }
 
-echo "Шаг 1/5: Проверка окружения (node, npm, python3, server/.env)"
+echo "Шаг 1: Проверка окружения (node, npm, python3)"
 for cmd in node npm python3; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Ошибка: команда '$cmd' не найдена."
@@ -142,36 +141,22 @@ for cmd in node npm python3; do
   fi
 done
 
-if [[ ! -f "$SERVER_ENV_FILE" ]]; then
-  echo "Ошибка: не найден файл server/.env"
-  echo "Создайте server/.env и вставьте ключ:"
-  echo "OPENAI_API_KEY=sk-..."
-  exit 1
-fi
-
-if ! grep -qE '^[[:space:]]*OPENAI_API_KEY[[:space:]]*=' "$SERVER_ENV_FILE"; then
-  echo "Ошибка: в server/.env нет строки OPENAI_API_KEY="
-  echo "Добавьте в server/.env:"
-  echo "OPENAI_API_KEY=sk-..."
-  exit 1
-fi
-
-echo "Шаг 2/5: Очистка старых процессов"
+echo "Шаг 2: Очистка старых процессов"
 if [[ -x "$ROOT_DIR/stop.command" ]]; then
   "$ROOT_DIR/stop.command" >/dev/null 2>&1 || true
 fi
 # stop.command может удалить .pids, поэтому создаём заново перед логами/PID.
 mkdir -p "$PIDS_DIR"
 
-echo "Шаг 3/5: Подготовка статических папок refs/"
+echo "Шаг 3: Подготовка статических папок refs/"
 ensure_refs_dir
 
-echo "Шаг 4/5: Проверка private-core"
+echo "Шаг 4: Проверка private-core"
 if ! ensure_private_core_files; then
   exit 1
 fi
 
-echo "Шаг 5/5: Установка backend-зависимостей (если нужно)"
+echo "Шаг 5: Установка backend-зависимостей (если нужно)"
 if [[ ! -d "$ROOT_DIR/server/node_modules" ]]; then
   (
     cd "$ROOT_DIR/server"
@@ -181,7 +166,7 @@ else
   echo "Зависимости backend уже установлены."
 fi
 
-echo "Шаг 6/6: Запуск backend и frontend"
+echo "Шаг 6: Запуск backend и frontend"
 echo "==== $(date '+%Y-%m-%d %H:%M:%S') start.command run ====" >>"$BACKEND_LOG"
 echo "==== $(date '+%Y-%m-%d %H:%M:%S') start.command run ====" >>"$FRONTEND_LOG"
 
@@ -207,7 +192,7 @@ if ! kill -0 "$FRONTEND_PID" 2>/dev/null; then
   exit 1
 fi
 
-echo "Шаг 7/7: Health-check backend и frontend"
+echo "Шаг 7: Health-check backend и frontend"
 if ! curl -s "$BACKEND_URL/health" >/dev/null 2>&1; then
   echo "Ошибка: backend недоступен ($BACKEND_URL/health)."
   echo "Лог: $BACKEND_LOG"

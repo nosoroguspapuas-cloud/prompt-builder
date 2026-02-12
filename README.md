@@ -102,8 +102,7 @@ http://localhost:5173/index.html?mode=demo
 ```
 
 Backend переменные (`server/.env`):
-- `OPENAI_API_KEY`
-- `FRONT_ORIGIN`
+- `FRONT_ORIGIN` (опционально, origin frontend для CORS)
 - `CORE_ACCESS_KEY` (опционально, включает защиту `/core/*`)
 
 ## Full host deployment
