@@ -406,13 +406,22 @@
       row-gap: 20px;
       align-items: start;
     }
-    .cameraTitle {
+    .cameraHead {
       grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .cameraTitle {
       margin: 0 0 2px;
       font-size: 21px;
       line-height: 26px;
       font-weight: 600;
       color: var(--text);
+    }
+    .cameraWrap.is-collapsed .cameraSection {
+      display: none;
     }
     .cameraSection {
       grid-column: 1 / -1;
@@ -759,7 +768,10 @@
         <h2 id="blocksCardTitle">Выбор блоков</h2>
         <div class="cameraWrap glass-surface" id="cameraWrap">
           <div class="cameraGrid">
-            <h3 class="cameraTitle" id="cameraTitle">КАМЕРА</h3>
+            <div class="cameraHead">
+              <h3 class="cameraTitle" id="cameraTitle">КАМЕРА</h3>
+              <button type="button" class="textBtn" id="cameraPanelToggleBtn">Скрыть панель</button>
+            </div>
 
             <div class="cameraSection">
               <span class="cameraLabel" id="cameraDistanceLabel">Дистанция</span>
@@ -1018,6 +1030,8 @@ const uiText = {
     cameraFocal: "Фокусное (мм)",
     cameraFocalHint: "Тяни вверх/вниз по правой грани · dbl-клик: 35мм",
     cameraFocalValue: "{mm} мм · {fov}°",
+    cameraHidePanel: "Скрыть панель",
+    cameraShowPanel: "Показать панель",
     cameraDistanceValue: "{value} м",
     cameraFovHandleLabel: "Регулятор фокусного на треугольнике угла обзора",
     cameraKnobHint: "Тяни вверх/вниз • Колесо +/- • Двойной клик: 35 мм",
@@ -1115,6 +1129,8 @@ const uiText = {
     cameraFocal: "Focal length (mm)",
     cameraFocalHint: "Drag up/down on wedge edge · dbl-click: 35mm",
     cameraFocalValue: "{mm}mm · {fov}°",
+    cameraHidePanel: "Hide panel",
+    cameraShowPanel: "Show panel",
     cameraDistanceValue: "{value} m",
     cameraFovHandleLabel: "Focal control on field-of-view wedge",
     cameraKnobHint: "Drag up/down • Wheel +/- • Double click: 35mm",
@@ -1413,6 +1429,7 @@ const els = {
   cameraFocalLabel: document.getElementById("cameraFocalLabel"),
   cameraFocalValue: document.getElementById("cameraFocalValue"),
   cameraFocalHint: document.getElementById("cameraFocalHint"),
+  cameraPanelToggleBtn: document.getElementById("cameraPanelToggleBtn"),
   cameraAngleLabel: document.getElementById("cameraAngleLabel"),
   cameraAngleValue: document.getElementById("cameraAngleValue"),
   angleAxisHint: document.getElementById("angleAxisHint"),
@@ -1480,6 +1497,7 @@ let uiLang = "ru";
 let promptLang = "en";
 let stylePackId = "INSTAGRAM_REAL";
 let realismGuardEnabled = true;
+let cameraPanelCollapsed = false;
 const CHARACTER_MASTER_KEY = "promptBuilder.characterMaster.i18n.v1";
 const LOCKS_KEY = "promptBuilder.blockLocks.v1";
 const PROMPT_LANG_KEY = "promptBuilder.promptLang.v1";
@@ -1992,6 +2010,7 @@ function applyStaticI18n() {
   els.cameraDistanceLabel.textContent = t("cameraDistance");
   els.cameraFocalLabel.textContent = t("cameraFocal");
   els.cameraFocalHint.textContent = t("cameraFocalHint");
+  renderCameraPanelToggle();
   if (els.cameraFovHandle) els.cameraFovHandle.setAttribute("aria-label", t("cameraFovHandleLabel"));
   els.cameraAngleLabel.textContent = t("cameraAngleLabel");
   els.angleAxisHint.textContent = t("cameraAxisHint");
@@ -2007,6 +2026,18 @@ function applyStaticI18n() {
   if (profile) els.modeLabel.textContent = t("modeProfile", { label: getProfileLabel(profile) });
   renderStylePack();
   renderCameraControls();
+}
+
+function renderCameraPanelToggle() {
+  if (!els.cameraWrap || !els.cameraPanelToggleBtn) return;
+  els.cameraWrap.classList.toggle("is-collapsed", cameraPanelCollapsed);
+  els.cameraPanelToggleBtn.textContent = cameraPanelCollapsed ? t("cameraShowPanel") : t("cameraHidePanel");
+  els.cameraPanelToggleBtn.setAttribute("aria-expanded", String(!cameraPanelCollapsed));
+}
+
+function toggleCameraPanel() {
+  cameraPanelCollapsed = !cameraPanelCollapsed;
+  renderCameraPanelToggle();
 }
 
 function renderStabilityEditor() {
@@ -3734,6 +3765,9 @@ function runQuickRuleChecks() {
   els.defaultCharacterMasterBtn.addEventListener("click", insertDefaultCharacterMaster);
   els.saveStabilityBtn.addEventListener("click", saveStability);
   els.defaultStabilityBtn.addEventListener("click", insertDefaultStability);
+  if (els.cameraPanelToggleBtn) {
+    els.cameraPanelToggleBtn.addEventListener("click", toggleCameraPanel);
+  }
   els.cameraDistance.addEventListener("input", () => onCameraInputsChanged("camera/distance"));
   let fovDragging = false;
   let fovStartY = 0;
