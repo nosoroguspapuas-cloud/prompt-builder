@@ -1,0 +1,3856 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Конструктор промптов</title>
+  <style>
+    :root {
+      --bg: #050501;
+      --panel: rgba(20, 21, 12, 0.65);
+      --panel-2: rgba(5, 5, 1, 0.45);
+      --text: rgba(255, 255, 255, 0.92);
+      --muted: rgba(255, 255, 255, 0.65);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(226, 245, 57, 0.18);
+      --accent: #e2f539;
+      --accent-2: rgba(226, 245, 57, 0.14);
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      --glow: 0 0 0 1px rgba(226, 245, 57, 0.35), 0 10px 22px rgba(226, 245, 57, 0.14);
+      --radius-card: 16px;
+      --radius-control: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+    }
+    .app-bg {
+      background:
+        radial-gradient(1200px 640px at 8% -10%, #14150c 0%, #090a05 42%, #050501 100%),
+        radial-gradient(780px 520px at 100% 0%, rgba(226, 245, 57, 0.05), transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+      position: relative;
+    }
+    .app-bg::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(620px 320px at 76% 10%, rgba(255, 255, 255, 0.06), transparent 60%);
+      opacity: 0.35;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    .topbar { display:flex; gap: 12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    h1 { font-size: 18px; margin: 0; color: var(--text); }
+    .mode { display:flex; gap: 10px; align-items:center; flex-wrap:wrap; }
+    select, .dropdown {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      padding: 10px 12px;
+      outline: none;
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+    select option, .dropdown option {
+      background: #11120b;
+      color: var(--text);
+    }
+    select:hover, .dropdown:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    select:focus, .dropdown:focus {
+      border-color: rgba(226, 245, 57, 0.45);
+      box-shadow: 0 0 0 3px rgba(226, 245, 57, 0.12);
+    }
+    .dropdown-menu {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-control);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .dropdown-item {
+      padding: 10px 12px;
+      color: var(--text);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      transition: background-color .2s ease;
+    }
+    .dropdown-item:last-child {
+      border-bottom: 0;
+    }
+    .dropdown-item:hover {
+      background: rgba(226, 245, 57, 0.08);
+    }
+    .glass-dropdown {
+      position: relative;
+      background: rgba(15, 15, 15, 0.55);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .glass-dropdown::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(1200px 400px at 20% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
+        radial-gradient(900px 500px at 80% 100%, rgba(226, 245, 57, 0.10), transparent 60%);
+      pointer-events: none;
+      opacity: 0.75;
+    }
+    .glass-dropdown-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.01);
+      color: var(--text);
+    }
+    .glass-dropdown-item:last-child {
+      border-bottom: 0;
+    }
+    .glass-dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .glass-dropdown-item:checked {
+      background: rgba(226, 245, 57, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(226, 245, 57, 0.28);
+    }
+    .pill {
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px solid var(--border-accent);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+    .grid { display:grid; grid-template-columns: 1.2fr .8fr; gap: 14px; margin-top: 14px; }
+    @media (max-width: 980px){ .grid { grid-template-columns: 1fr; } }
+    .card { padding: 14px; }
+    .glass-card,
+    .glass-surface {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      backdrop-filter: blur(14px) saturate(140%);
+      -webkit-backdrop-filter: blur(14px) saturate(140%);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .glass-card::before,
+    .glass-surface::before {
+      content: "";
+      position: absolute;
+      inset: -35% -20% auto;
+      height: 58%;
+      background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.14), transparent 68%);
+      opacity: 0.12;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glass-card > *,
+    .glass-surface > * {
+      position: relative;
+      z-index: 1;
+    }
+    .card h2 { font-size: 14px; margin: 0 0 10px; color: var(--muted); font-weight: 600; }
+    .promptHead { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom: 10px; }
+    .promptHead h2 { margin: 0; }
+    .promptLang { display:flex; align-items:center; gap:8px; font-size:12px; color: var(--muted); }
+    .blocks { display:flex; flex-direction:column; gap: 12px; }
+    .block {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    }
+    .blockHead { display:flex; align-items:baseline; justify-content:space-between; gap: 10px; margin-bottom: 10px; }
+    .blockTitleRow { display:flex; align-items:center; gap: 8px; }
+    .blockTitle { font-size: 14px; margin:0; }
+    .blockHint { font-size: 12px; color: var(--muted); margin:0; }
+    .lockBtn {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      line-height: 1.2;
+      transition: border-color .2s ease, color .2s ease, background-color .2s ease;
+    }
+    .lockBtn.active {
+      color: var(--text);
+      border-color: rgba(226, 245, 57, 0.45);
+      background: rgba(226, 245, 57, 0.14);
+    }
+    .block.locked { border-color: var(--border-accent); }
+    .chips { display:flex; flex-wrap:wrap; gap: 8px; }
+    .chip {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.86);
+      border-radius: var(--radius-control);
+      padding: 7px 10px;
+      font-size: 13px;
+      cursor:pointer;
+      user-select:none;
+      line-height: 1.2;
+      transition: border-color .2s ease, background-color .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+    .chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+    .chip.active {
+      background: rgba(226, 245, 57, 0.14);
+      border-color: rgba(226, 245, 57, 0.55);
+      color: var(--text);
+      box-shadow: 0 0 0 1px rgba(226, 245, 57, 0.18);
+    }
+    .chip--active {
+      background: rgba(226, 245, 57, 0.14);
+      border-color: rgba(226, 245, 57, 0.55);
+      color: var(--text);
+      box-shadow: 0 0 0 1px rgba(226, 245, 57, 0.18);
+    }
+    .chip:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(226, 245, 57, 0.14);
+    }
+    .chip--locked,
+    .block.locked .chip {
+      border-color: rgba(226, 245, 57, 0.2);
+    }
+    .blockMore { margin-top: 10px; }
+    .rightTop { display:flex; gap: 8px; flex-wrap:wrap; margin-bottom: 10px; }
+    button.btn {
+      border: 1px solid transparent;
+      background: var(--accent);
+      color: #050501;
+      border-radius: var(--radius-control);
+      padding: 10px 12px;
+      cursor:pointer;
+      font-weight: 650;
+      box-shadow: var(--glow);
+      transition: transform .16s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
+    }
+    button.btn:hover {
+      background: #d9f016;
+      box-shadow: 0 0 0 1px rgba(226, 245, 57, 0.42), 0 14px 26px rgba(226, 245, 57, 0.18);
+      transform: translateY(-1px);
+    }
+    button.btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(226, 245, 57, 0.28), 0 0 0 1px rgba(226, 245, 57, 0.55);
+    }
+    button.btn:active {
+      transform: translateY(0);
+      background: #ccdf26;
+    }
+    button.btn.secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+    }
+    button.btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.09);
+      transform: translateY(-1px);
+    }
+    button.btn.secondary:active {
+      transform: translateY(0);
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #050501;
+      box-shadow: var(--glow);
+    }
+    .btn-secondary,
+    .btn.secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.88);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: none;
+    }
+    .charWrap {
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .charTitle { font-size: 12px; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+    textarea#characterMaster { min-height: 90px; margin-bottom: 8px; }
+    textarea#stabilityText { min-height: 90px; margin-bottom: 8px; }
+    .langSwitch { display:flex; gap:8px; align-items:center; margin-bottom: 8px; }
+    .langBtn {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .langBtn.active {
+      color: var(--text);
+      border-color: rgba(226, 245, 57, 0.45);
+      background: rgba(226, 245, 57, 0.12);
+    }
+    .row { display:flex; gap: 10px; flex-wrap:wrap; align-items:center; margin-bottom: 10px; }
+    .toggle { display:flex; gap: 8px; align-items:center; }
+    .toggle span { color: var(--text); }
+    .toggle input { transform: scale(1.1); }
+    .hidden { display: none; }
+    textarea, .input {
+      width:100%;
+      min-height: 380px;
+      resize: vertical;
+      padding: 12px;
+      border-radius: var(--radius-control);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--panel-2);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.45;
+      transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+    textarea:focus, .input:focus {
+      outline: none;
+      border-color: rgba(226, 245, 57, 0.45);
+      box-shadow: 0 0 0 3px rgba(226, 245, 57, 0.12);
+      background: rgba(5, 5, 1, 0.58);
+    }
+    .status { font-size: 12px; color: var(--muted); }
+    .notice { font-size: 12px; color: rgba(226, 245, 57, 0.78); min-height: 16px; margin: 6px 0 0; }
+    .variantsWrap { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+    .variantsTitle { font-size: 12px; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+    .variantItem {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      margin-bottom: 8px;
+    }
+    .variantHead { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom: 6px; }
+    .variantIdx { font-size: 12px; color: var(--muted); }
+    .variantText { white-space: pre-wrap; font-size: 12px; line-height: 1.4; max-height: 140px; overflow: auto; }
+    .actionsSub { display:flex; gap: 12px; align-items:center; margin: -2px 0 10px; }
+    .textBtn {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: underline;
+      font-size: 12px;
+      cursor: pointer;
+      text-underline-offset: 2px;
+      transition: color .2s ease;
+    }
+    .textBtn:hover {
+      color: var(--text);
+    }
+    .phoneRefCard {
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 0;
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .phoneRefTitle { font-size: 12px; color: var(--muted); margin: 0; padding: 10px 10px 6px; font-weight: 600; }
+    .phoneRefImg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      width: 100%;
+      border-radius: 12px;
+    }
+    .phoneRefHint {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+      padding: 6px 10px 10px;
+    }
+    .phoneRefInner {
+      display: block;
+      padding: 0 10px;
+    }
+    .cameraWrap {
+      margin-bottom: 12px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .cameraGrid {
+      max-width: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+      row-gap: 20px;
+      align-items: start;
+    }
+    .cameraTitle {
+      grid-column: 1 / -1;
+      margin: 0 0 2px;
+      font-size: 21px;
+      line-height: 26px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .cameraSection {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      column-gap: 18px;
+      row-gap: 6px;
+      align-items: start;
+    }
+    .cameraLabel {
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 500;
+      color: var(--muted);
+      align-self: start;
+    }
+    .cameraValue {
+      font-size: 12px;
+      line-height: 16px;
+      color: rgba(255,255,255,0.74);
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+      min-width: 84px;
+      text-align: right;
+      align-self: center;
+    }
+    .cameraControlCol {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cameraRowTop {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .cameraSlider {
+      width: 100%;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      height: 28px;
+    }
+    .cameraSlider::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .cameraSlider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      margin-top: -5px;
+      background: var(--accent);
+      border: 1px solid rgba(0,0,0,0.45);
+      box-shadow: 0 0 0 2px rgba(226,245,57,0.22);
+    }
+    .cameraSlider::-moz-range-track {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .cameraSlider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 1px solid rgba(0,0,0,0.45);
+      box-shadow: 0 0 0 2px rgba(226,245,57,0.22);
+    }
+    .distanceTrackWrap {
+      position: relative;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      overflow: visible;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .distanceFovOverlay {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 140px;
+      pointer-events: none;
+      z-index: 0;
+      overflow: visible;
+    }
+    #distanceFovOverlay {
+      overflow: visible;
+      pointer-events: none;
+    }
+    .fovDragHandle {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(226,245,57,0.12);
+      border: 0;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      cursor: ns-resize;
+      padding: 0;
+      touch-action: none;
+    }
+    .fovDragHandle::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 3px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(226,245,57,0.85);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+    }
+    .fovDragHandle::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(226,245,57,0.95);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px rgba(226,245,57,0.32);
+    }
+    .distanceTrackWrap .cameraSlider {
+      position: relative;
+      z-index: 1;
+    }
+    .cameraDerived {
+      margin: 0;
+      font-size: 11px;
+      line-height: 14px;
+      color: rgba(255,255,255,0.58);
+    }
+    .fovDragHandle:focus-visible {
+      outline: 2px solid rgba(226,245,57,0.65);
+      outline-offset: 1px;
+    }
+    .distanceTrackWrap.dragging .fovDragHandle {
+      cursor: grabbing;
+      background: rgba(226,245,57,0.2);
+    }
+    .distanceTrackWrap.dragging #distanceFovCone {
+      fill: rgba(226,245,57,0.26);
+    }
+    .distanceTrackWrap.dragging #distanceFovBase {
+      stroke: rgba(226,245,57,0.95);
+    }
+    .cameraHintInline {
+      margin: 0;
+      font-size: 11px;
+      line-height: 14px;
+      color: rgba(255,255,255,0.56);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cameraAngleLayout {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 124px;
+    }
+    .angleWrap {
+      display: contents;
+    }
+    .anglePad {
+      width: 120px;
+      height: 120px;
+      aspect-ratio: 1 / 1;
+      flex: 0 0 120px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: radial-gradient(circle at 50% 45%, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      position: relative;
+      touch-action: none;
+      user-select: none;
+    }
+    .angleCrossX,
+    .angleCrossY {
+      position: absolute;
+      background: rgba(255,255,255,0.12);
+      pointer-events: none;
+    }
+    .angleCrossX {
+      left: 10px;
+      right: 10px;
+      top: 50%;
+      height: 1px;
+      transform: translateY(-0.5px);
+    }
+    .angleCrossY {
+      top: 10px;
+      bottom: 10px;
+      left: 50%;
+      width: 1px;
+      transform: translateX(-0.5px);
+    }
+    .angleDot {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 1px solid rgba(0,0,0,0.45);
+      box-shadow: 0 0 0 3px rgba(226,245,57,0.2);
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .angleMeta {
+      font-size: 13px;
+      line-height: 18px;
+      color: var(--muted);
+      margin: 0;
+      display: none;
+    }
+    .segment {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .segmentBtn {
+      border: 0;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+    }
+    .segmentBtn:last-child { border-right: 0; }
+    .segmentBtn.active {
+      background: rgba(226,245,57,0.16);
+      color: var(--text);
+    }
+    .cameraControlsStack {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .debugPanel {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      width: 360px;
+      max-height: 280px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      padding: 8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px;
+      background: rgba(5,5,1,0.92);
+      z-index: 1000;
+      font-size: 11px;
+      line-height: 14px;
+      color: rgba(255,255,255,0.84);
+    }
+    .debugPanel.open { display: flex; }
+    .debugHead { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+    .debugActions { display: flex; gap: 6px; }
+    .debugBtn {
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.86);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .debugLog {
+      margin: 0;
+      padding: 6px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      overflow: auto;
+      white-space: pre-wrap;
+      font-family: ui-monospace, Menlo, Monaco, "Courier New", monospace;
+    }
+    .cameraAngleStatus {
+      margin: 2px 0 0;
+      font-size: 11px;
+      line-height: 14px;
+      color: rgba(255,255,255,0.62);
+      white-space: nowrap;
+    }
+    @media (max-width: 900px) {
+      .cameraSection {
+        grid-template-columns: 150px 1fr;
+        column-gap: 16px;
+      }
+    }
+    @media (max-width: 700px) {
+      .cameraSection {
+        grid-template-columns: 1fr;
+        row-gap: 8px;
+      }
+      .cameraRowTop { gap: 8px; }
+    }
+  </style>
+</head>
+<body class="app-bg">
+  <div class="wrap">
+    <div class="topbar">
+      <h1 id="appTitle">Конструктор промптов</h1>
+      <div class="mode">
+        <span class="pill" id="modeLabel">ПРОФИЛЬ: —</span>
+        <label class="promptLang">
+          <span id="uiLangLabel">Язык интерфейса:</span>
+          <select id="uiLangSelect" class="dropdown">
+            <option value="ru">RU</option>
+            <option value="en">EN</option>
+          </select>
+        </label>
+        <select id="profileSelect" class="dropdown glass-dropdown"></select>
+        <div id="scenarioWrap" class="hidden">
+          <select id="scenarioSelect" class="dropdown glass-dropdown"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card glass-card">
+        <h2 id="blocksCardTitle">Выбор блоков</h2>
+        <div class="cameraWrap glass-surface" id="cameraWrap">
+          <div class="cameraGrid">
+            <h3 class="cameraTitle" id="cameraTitle">КАМЕРА</h3>
+
+            <div class="cameraSection">
+              <span class="cameraLabel" id="cameraDistanceLabel">Дистанция</span>
+              <div class="cameraControlCol">
+                <div class="cameraRowTop">
+                  <div class="distanceTrackWrap" id="distanceTrackWrap">
+                    <svg class="distanceFovOverlay" id="distanceFovOverlay" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">
+                      <polygon id="distanceFovCone" points="0,70 20,62 20,78" fill="rgba(226,245,57,0.18)"></polygon>
+                      <line id="distanceFovBase" x1="20" y1="62" x2="20" y2="78" stroke="rgba(226,245,57,0.72)" stroke-width="2"></line>
+                    </svg>
+                    <button type="button" class="fovDragHandle" id="cameraFovHandle" aria-label="FOV control"></button>
+                    <input id="cameraDistance" class="cameraSlider" type="range" min="0.3" max="6" step="0.05" value="1.8" />
+                  </div>
+                  <span class="cameraValue" id="cameraDistanceValue">1.80m</span>
+                </div>
+                <p class="cameraDerived" id="cameraShotIndicator">Кадр: 3/4</p>
+              </div>
+            </div>
+
+            <div class="cameraSection">
+              <span class="cameraLabel" id="cameraFocalLabel">Фокусное (мм)</span>
+              <div class="cameraControlCol">
+                <div class="cameraRowTop">
+                  <span class="cameraValue" id="cameraFocalValue">35 мм ~ 54.4°</span>
+                </div>
+                <p class="cameraHintInline" id="cameraFocalHint">Тяни вверх/вниз по правой грани · dbl-клик: 35мм</p>
+              </div>
+            </div>
+
+            <div class="cameraSection">
+              <span class="cameraLabel" id="cameraAngleLabel">Ракурс</span>
+              <div class="cameraControlCol">
+                <div class="cameraAngleLayout">
+                  <div class="angleWrap">
+                    <div id="anglePad" class="anglePad" aria-label="Angle pad">
+                      <div class="angleCrossX"></div>
+                      <div class="angleCrossY"></div>
+                      <div id="angleDot" class="angleDot"></div>
+                    </div>
+                  </div>
+                  <div class="cameraControlsStack">
+                    <div class="angleMeta" id="angleAxisHint">Угол / Высота</div>
+                    <div class="segment" id="viewModeSegment">
+                      <button type="button" class="segmentBtn active" id="viewModeFrontBtn" data-mode="front">Спереди</button>
+                      <button type="button" class="segmentBtn" id="viewModeBackBtn" data-mode="back">Сзади</button>
+                    </div>
+                    <button type="button" class="textBtn" id="angleResetBtn">Сброс</button>
+                    <p class="cameraAngleStatus" id="cameraAngleValue">Спереди · На уровне глаз</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="blocks" id="blocks"></div>
+      </div>
+
+      <div class="card glass-card">
+        <div class="promptHead">
+          <h2 id="promptCardTitle">Готовый промпт</h2>
+          <label class="promptLang">
+            <span id="promptLangLabel">Язык промпта:</span>
+            <select id="promptLangSelect" class="dropdown glass-dropdown">
+              <option value="en">EN</option>
+              <option value="ru">RU</option>
+            </select>
+          </label>
+        </div>
+        <div class="rightTop">
+          <button class="btn btn-primary" id="copyBtn">Копировать</button>
+          <button class="btn secondary btn-secondary" id="randomBtn">Рандом</button>
+          <button class="btn secondary btn-secondary" id="tenVariantsBtn">10 вариантов</button>
+        </div>
+        <div class="actionsSub">
+          <button class="textBtn" id="clearBtn" type="button">Сброс</button>
+          <button class="textBtn" id="unlockAllBtn" type="button">Снять фиксации</button>
+        </div>
+
+        <div class="row">
+          <label class="toggle">
+            <input type="checkbox" id="includeMaster" checked />
+            <span id="includeMasterLabel">МАСТЕР</span>
+          </label>
+          <label class="toggle" id="safeToggleWrap">
+            <input type="checkbox" id="includeSafeBlock" checked />
+            <span id="includeSafeBlockLabel">БЕЗОПАСНОСТЬ</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="includeStability" checked />
+            <span id="includeStabilityLabel">СТАБИЛЬНОСТЬ</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="realismGuard" checked />
+            <span id="realismGuardLabel">РЕАЛИЗМ</span>
+          </label>
+        </div>
+
+        <div class="status" id="status">—</div>
+        <div class="notice" id="autoFixNotice"></div>
+        <textarea id="prompt" class="input" readonly></textarea>
+
+        <div class="phoneRefCard glass-surface hidden" id="phoneRefCard">
+          <h3 class="phoneRefTitle" id="phoneRefTitle">Phone reference</h3>
+          <div class="phoneRefInner">
+            <img class="phoneRefImg" id="phoneRefImage" alt="Phone reference">
+          </div>
+          <p class="phoneRefHint" id="phoneRefHint"></p>
+        </div>
+
+        <div class="charWrap glass-surface" id="stylePackWrap">
+          <h3 class="charTitle" id="stylePackTitle">СТИЛИЗАЦИЯ</h3>
+          <select id="stylePackSelect" class="dropdown glass-dropdown"></select>
+        </div>
+
+        <div class="charWrap glass-surface">
+          <h3 class="charTitle" id="characterTitle">ОПИСАНИЕ ПЕРСОНАЖА</h3>
+          <textarea id="characterMaster" class="input"></textarea>
+          <div class="rightTop">
+            <button class="btn secondary btn-secondary" id="saveCharacterMasterBtn" type="button">Сохранить</button>
+            <button class="textBtn" id="defaultCharacterMasterBtn" type="button">Сбросить к дефолту</button>
+          </div>
+        </div>
+
+        <div class="charWrap glass-surface">
+          <h3 class="charTitle" id="stabilityTitle">БЛОК СТАБИЛЬНОСТИ</h3>
+          <textarea id="stabilityText" class="input"></textarea>
+          <div class="rightTop">
+            <button class="btn secondary btn-secondary" id="saveStabilityBtn" type="button">Сохранить</button>
+            <button class="textBtn" id="defaultStabilityBtn" type="button">Сбросить к дефолту</button>
+          </div>
+        </div>
+
+        <div class="variantsWrap">
+          <h3 class="variantsTitle" id="variantsTitle">10 вариантов</h3>
+          <div id="variantsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="debugPanel" id="debugPanel">
+    <div class="debugHead">
+      <strong>Debug: last changes</strong>
+      <div class="debugActions">
+        <button type="button" class="debugBtn" id="debugRunReproBtn">Repro x10</button>
+        <button type="button" class="debugBtn" id="debugRunChecksBtn">Run checks</button>
+        <button type="button" class="debugBtn" id="debugCopyBtn">Copy log</button>
+      </div>
+    </div>
+    <pre class="debugLog" id="debugLog"></pre>
+  </div>
+
+<script src="matrices.js"></script>
+<script src="src/logic/constraints.js"></script>
+<script>
+const RAW_PROFILES = window.PROFILES_DATA || {};
+const PHONE_KIT = {
+  enabled: true,
+  promptEn: "same phone model in all images, consistent phone color and camera layout.",
+  promptRu: "одинаковая модель телефона во всех изображениях, стабильный цвет и расположение камер.",
+  mirrorPromptEn: "same phone model as reference, consistent phone design, same camera layout, same color, same case.",
+  mirrorPromptRu: "тот же телефон, что в референсе, одинаковая модель, одинаковая камера, одинаковый цвет и чехол.",
+  imageUrl: "/refs/phone.jpg",
+};
+const STYLE_PACKS = {
+  INSTAGRAM_REAL: {
+    label: { en: "INSTAGRAM_REAL", ru: "INSTAGRAM_REAL" },
+    prompt: {
+      EN: "real smartphone photo, natural candid, no studio, realistic texture, social-media authentic look.",
+      RU: "реалистичное фото на смартфон, естественный candid, без студийности, натуральная текстура, живой соцсетевой вид.",
+    },
+  },
+  PINTEREST_FASHION: {
+    label: { en: "PINTEREST_FASHION", ru: "PINTEREST_FASHION" },
+    prompt: {
+      EN: "pinterest fashion aesthetic, editorial-lite candid, curated outfit, subtle film grain.",
+      RU: "эстетика pinterest fashion, candid с легким editorial вайбом, собранный аутфит, деликатное пленочное зерно.",
+    },
+  },
+  TIKTOK_CANDID: {
+    label: { en: "TIKTOK_CANDID", ru: "TIKTOK_CANDID" },
+    prompt: {
+      EN: "tiktok candid vibe, casual framing, slight motion feel, natural phone camera realism.",
+      RU: "вайб tiktok candid, непринужденный кадр, легкое ощущение движения, реализм камеры телефона.",
+    },
+  },
+  STREET_EDITORIAL: {
+    label: { en: "STREET_EDITORIAL", ru: "STREET_EDITORIAL" },
+    prompt: {
+      EN: "street editorial, long lens compression, fashion-forward styling, modern premium look.",
+      RU: "street editorial, компрессия длиннофокусного объектива, актуальный стайлинг, современный премиальный вид.",
+    },
+  },
+  SOFT_FILM_35MM: {
+    label: { en: "SOFT_FILM_35MM", ru: "SOFT_FILM_35MM" },
+    prompt: {
+      EN: "soft 35mm film look, gentle grain, slightly warm highlights, natural candid realism.",
+      RU: "мягкий вид пленки 35mm, деликатное зерно, немного теплые хайлайты, естественный candid реализм.",
+    },
+  },
+};
+const DEBUG = true;
+const DEBUG_RING_MAX = 300;
+const debugEvents = [];
+const uiText = {
+  ru: {
+    appTitle: "Конструктор промптов",
+    uiLangLabel: "Язык интерфейса:",
+    blocksCardTitle: "Выбор блоков",
+    promptCardTitle: "Готовый промпт",
+    promptLangLabel: "Язык промпта:",
+    copy: "Копировать",
+    random: "Рандом",
+    tenVariants: "10 вариантов",
+    reset: "Сброс",
+    clearLocks: "Снять фиксации",
+    characterTitle: "ОПИСАНИЕ ПЕРСОНАЖА",
+    stylePackTitle: "СТИЛИЗАЦИЯ (STYLE PACK)",
+    realismGuard: "РЕАЛИЗМ",
+    cameraTitle: "КАМЕРА",
+    cameraDistance: "Дистанция",
+    cameraAngleLabel: "Ракурс",
+    cameraAxisHint: "Угол / Высота",
+    cameraFocal: "Фокусное (мм)",
+    cameraFocalHint: "Тяни вверх/вниз по правой грани · dbl-клик: 35мм",
+    cameraFocalValue: "{mm} мм · {fov}°",
+    cameraDistanceValue: "{value} м",
+    cameraFovHandleLabel: "Регулятор фокусного на треугольнике угла обзора",
+    cameraKnobHint: "Тяни вверх/вниз • Колесо +/- • Двойной клик: 35 мм",
+    viewFront: "Спереди",
+    viewBack: "Сзади",
+    angleReset: "Сброс",
+    viewLabel: "вид",
+    angleLabel: "угол",
+    viewFrontDesc: "спереди",
+    viewBackDesc: "со спины",
+    viewThreeQuarterLeft: "3/4 слева",
+    viewThreeQuarterRight: "3/4 справа",
+    viewSideLeft: "профиль слева",
+    viewSideRight: "профиль справа",
+    viewBackThreeQuarterLeft: "3/4 сзади слева",
+    viewBackThreeQuarterRight: "3/4 сзади справа",
+    viewBackTurnLeft: "со спины, поворот влево",
+    viewBackTurnRight: "со спины, поворот вправо",
+    angleHigh: "сверху",
+    angleEye: "на уровне глаз",
+    angleLow: "снизу",
+    cameraShot: "Кадр: {shot}",
+    stabilityTitle: "БЛОК СТАБИЛЬНОСТИ",
+    save: "Сохранить",
+    resetDefault: "Сбросить к дефолту",
+    phoneReference: "Референс телефона",
+    includeMaster: "МАСТЕР",
+    includeSafe: "БЕЗОПАСНОСТЬ",
+    includeStability: "СТАБИЛЬНОСТЬ",
+    modeProfile: "ПРОФИЛЬ: {label}",
+    scenarioPrefix: "Сценарий: {label}",
+    chooseOne: "выбери 1",
+    chooseMany: "выбери 0–{limit}",
+    lockTitleLocked: "Заблокировано (Рандом не меняет)",
+    lockTitleUnlocked: "Разблокировано",
+    showMore: "Показать ещё",
+    collapse: "Свернуть",
+    phoneHint: "ПКМ -> Копировать изображение",
+    phoneAutoAddedBadge: "Телефон добавлен автоматически (зеркальная сцена)",
+    phoneMirrorRecommend: "Для зеркальных сцен рекомендуется телефон для консистентности",
+    locksCleared: "Фиксации сняты для текущего профиля.",
+    characterSaved: "Описание персонажа сохранено ({lang}).",
+    stabilitySaved: "Блок стабильности сохранён ({lang}).",
+    statusFilled: "Заполнено блоков {filled}/{total} • Аксессуары {acc}/{limit} • Фиксации {locks}",
+    copied: "Скопировано.",
+    copiedFallback: "Скопировано (резервный способ).",
+    variantN: "Вариант {n}",
+    variantCopied: "Скопирован вариант {n}.",
+    variantCopiedFallback: "Скопирован вариант {n} (резервный способ).",
+    generatedTen: "Сгенерировано 10 вариантов.",
+    generatedRandom: "Сгенерировано случайно.",
+    sceneAutoFix: "Некоторые блоки были заменены для логичности сцены.",
+    distanceAutoShift: "Дистанция камеры автоматически увеличена для совместимости с позой.",
+    mirrorBackNotAllowed: "Для зеркальной сцены вид со спины недоступен. Переключено на вид спереди.",
+    profileMeta: {
+      SAFE: { title: "БЕЗОПАСНЫЙ", subtitle: "Уличный лайфстайл" },
+      SEXY: { title: "СЕКСИ", subtitle: "Городской, безопасный" },
+      HOME_SEXY: { title: "ДОМАШНИЙ СЕКСИ", subtitle: "Мягкий домашний стиль" },
+      CUTE: { title: "МИЛЫЙ", subtitle: "Лайфстайл" },
+      TRAVEL: { title: "ПУТЕШЕСТВИЕ", subtitle: "Милый лайфстайл" },
+      RAINY_DAY: { title: "ДОЖДЛИВЫЙ ДЕНЬ", subtitle: "Улица и зонт" },
+      WINTER: { title: "ЗИМА", subtitle: "Холодный сезон" },
+      OFFICE: { title: "ОФИС", subtitle: "Бизнес стиль" },
+      DATE_NIGHT: { title: "ВЕЧЕР", subtitle: "Свидание" },
+      GYM_WELLNESS: { title: "ЗАЛ", subtitle: "Велнес" },
+      SUMMER_RESORT: { title: "ЛЕТО", subtitle: "Курорт" },
+      CAFE_WORK: { title: "КАФЕ", subtitle: "Работа с ноутбуком" },
+      NIGHT_CITY: { title: "НОЧНОЙ ГОРОД", subtitle: "Неон и вечер" },
+      LUXURY_MINIMAL: { title: "ЛЮКС МИНИМАЛ", subtitle: "Премиум минимализм" },
+      HOME_SOFT: { title: "ДОМА СОФТ", subtitle: "Спокойный домашний вайб" },
+      TRAVEL_CUTE: { title: "ПУТЕШЕСТВИЕ МИЛОЕ", subtitle: "Нежный тревел стиль" },
+      GYM: { title: "ЗАЛ СПОРТ", subtitle: "Активная тренировка" },
+      BEACH_SUMMER: { title: "ПЛЯЖ ЛЕТО", subtitle: "Морской вайб" },
+    },
+    blockTitles: {},
+  },
+  en: {
+    appTitle: "Prompt Builder",
+    uiLangLabel: "UI language:",
+    blocksCardTitle: "Blocks",
+    promptCardTitle: "Final Prompt",
+    promptLangLabel: "Prompt language:",
+    copy: "Copy",
+    random: "Random",
+    tenVariants: "10 Variants",
+    reset: "Reset",
+    clearLocks: "Clear locks",
+    characterTitle: "CHARACTER DESCRIPTION",
+    stylePackTitle: "STYLE PACK",
+    realismGuard: "REALISM",
+    cameraTitle: "CAMERA",
+    cameraDistance: "Distance",
+    cameraAngleLabel: "Angle",
+    cameraAxisHint: "Yaw / Altitude",
+    cameraFocal: "Focal length (mm)",
+    cameraFocalHint: "Drag up/down on wedge edge · dbl-click: 35mm",
+    cameraFocalValue: "{mm}mm · {fov}°",
+    cameraDistanceValue: "{value} m",
+    cameraFovHandleLabel: "Focal control on field-of-view wedge",
+    cameraKnobHint: "Drag up/down • Wheel +/- • Double click: 35mm",
+    viewFront: "Front",
+    viewBack: "Back",
+    angleReset: "Reset",
+    viewLabel: "view",
+    angleLabel: "angle",
+    viewFrontDesc: "front",
+    viewBackDesc: "back",
+    viewThreeQuarterLeft: "three-quarter left",
+    viewThreeQuarterRight: "three-quarter right",
+    viewSideLeft: "side profile left",
+    viewSideRight: "side profile right",
+    viewBackThreeQuarterLeft: "three-quarter from behind (left)",
+    viewBackThreeQuarterRight: "three-quarter from behind (right)",
+    viewBackTurnLeft: "back view, slight turn left",
+    viewBackTurnRight: "back view, slight turn right",
+    angleHigh: "high angle",
+    angleEye: "eye-level",
+    angleLow: "low angle",
+    cameraShot: "Frame: {shot}",
+    stabilityTitle: "STABILITY BLOCK",
+    save: "Save",
+    resetDefault: "Reset to default",
+    phoneReference: "Phone reference",
+    includeMaster: "MASTER",
+    includeSafe: "SAFETY",
+    includeStability: "STABILITY",
+    modeProfile: "PROFILE: {label}",
+    scenarioPrefix: "Scenario: {label}",
+    chooseOne: "pick 1",
+    chooseMany: "pick 0–{limit}",
+    lockTitleLocked: "Locked (Random does not change)",
+    lockTitleUnlocked: "Unlocked",
+    showMore: "Show more",
+    collapse: "Collapse",
+    phoneHint: "Right click -> Copy image",
+    phoneAutoAddedBadge: "Phone was auto-added (mirror scene)",
+    phoneMirrorRecommend: "Phone is recommended for mirror-scene consistency",
+    locksCleared: "Locks cleared for current profile.",
+    characterSaved: "Character description saved ({lang}).",
+    stabilitySaved: "Stability block saved ({lang}).",
+    statusFilled: "Filled blocks {filled}/{total} • Accessories {acc}/{limit} • Locks {locks}",
+    copied: "Copied.",
+    copiedFallback: "Copied (fallback).",
+    variantN: "Variant {n}",
+    variantCopied: "Variant {n} copied.",
+    variantCopiedFallback: "Variant {n} copied (fallback).",
+    generatedTen: "Generated 10 variants.",
+    generatedRandom: "Generated random selection.",
+    sceneAutoFix: "Some blocks were replaced to keep the scene logical.",
+    distanceAutoShift: "Camera distance was auto-shifted for pose compatibility.",
+    mirrorBackNotAllowed: "Back view is not allowed for mirror scenes. Switched to front view.",
+    profileMeta: {
+      SAFE: { title: "SAFE", subtitle: "Street Lifestyle" },
+      SEXY: { title: "SEXY", subtitle: "Urban, safe" },
+      HOME_SEXY: { title: "HOME SEXY", subtitle: "Soft home style" },
+      CUTE: { title: "CUTE", subtitle: "Lifestyle" },
+      TRAVEL: { title: "TRAVEL", subtitle: "Cute travel" },
+      RAINY_DAY: { title: "RAINY DAY", subtitle: "Street & umbrella" },
+      WINTER: { title: "WINTER", subtitle: "Cold season" },
+      OFFICE: { title: "OFFICE", subtitle: "Business style" },
+      DATE_NIGHT: { title: "EVENING", subtitle: "Date night" },
+      GYM_WELLNESS: { title: "GYM", subtitle: "Wellness" },
+      SUMMER_RESORT: { title: "SUMMER", subtitle: "Resort" },
+      CAFE_WORK: { title: "CAFE", subtitle: "Laptop work" },
+      NIGHT_CITY: { title: "NIGHT CITY", subtitle: "Neon vibes" },
+      LUXURY_MINIMAL: { title: "LUX MINIMAL", subtitle: "Premium minimal" },
+      HOME_SOFT: { title: "HOME SOFT", subtitle: "Calm indoor vibe" },
+      TRAVEL_CUTE: { title: "TRAVEL CUTE", subtitle: "Soft travel style" },
+      GYM: { title: "GYM SPORT", subtitle: "Active training" },
+      BEACH_SUMMER: { title: "BEACH SUMMER", subtitle: "Sea breeze" },
+    },
+    blockTitles: {
+      location: "Location (1)",
+      outfit: "Outfit (1)",
+      accessories: "Accessories (0–2)",
+      framing: "Framing (1)",
+      pose: "Pose (1)",
+      emotion: "Emotion (1)",
+      light: "Light (1)",
+      style: "Style (1)",
+    },
+  },
+};
+function toTitleFromKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function getUiLang() {
+  return uiLang === "en" ? "en" : "ru";
+}
+
+function t(key, vars = {}) {
+  const lang = getUiLang();
+  const dict = uiText[lang] || uiText.en;
+  const template = dict[key] || uiText.en[key] || key;
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ""));
+}
+
+function splitProfileLabel(raw) {
+  const value = String(raw || "").replace(/[()]/g, "").trim();
+  const match = value.match(/^(.*?)\s*\((.*?)\)\s*$/);
+  if (!match) return { title: value, subtitle: "" };
+  return {
+    title: (match[1] || "").replace(/[()]/g, "").trim(),
+    subtitle: (match[2] || "").replace(/[()]/g, "").trim()
+  };
+}
+
+function isLatinText(value) {
+  return /[A-Za-z]/.test(String(value || ""));
+}
+
+function isCyrillicText(value) {
+  return /[А-Яа-яЁё]/.test(String(value || ""));
+}
+
+function getProfileTitleSubtitle(lang, key, rawLabel, fallbackTitle) {
+  const overrides = uiText[lang]?.profileMeta?.[key];
+  if (overrides?.title) {
+    return {
+      title: overrides.title,
+      subtitle: overrides.subtitle || "",
+    };
+  }
+
+  const parsed = splitProfileLabel(rawLabel || fallbackTitle || key);
+  let subtitle = parsed.subtitle || "";
+
+  if (lang === "ru" && isLatinText(subtitle)) subtitle = "";
+  if (lang === "en" && isCyrillicText(subtitle)) subtitle = "";
+
+  return {
+    title: parsed.title || fallbackTitle || key,
+    subtitle,
+  };
+}
+
+function getProfileLabel(profile) {
+  const lang = getUiLang();
+  const title = String(profile?.title?.[lang] || profile?.title?.en || profile?.title?.ru || profile.key).replace(/[()]/g, "").trim();
+  const subtitle = String(profile?.subtitle?.[lang] || "").replace(/[()]/g, "").trim();
+  return subtitle ? `${title} — ${subtitle}` : title;
+}
+
+function getScenarioLabel(scenario) {
+  const lang = getUiLang();
+  if (lang === "ru") return scenario.labelRu || scenario.labelEn || scenario.key;
+  return scenario.labelEn || scenario.labelRu || scenario.key;
+}
+
+function getBlockTitle(block) {
+  const lang = getUiLang();
+  if (lang === "ru") return block.titleRu || block.titleEn || block.key;
+  return block.titleEn || block.titleRu || block.key;
+}
+
+function getOptionLabel(item) {
+  const lang = getUiLang();
+  return item?.label?.[lang] || item?.label?.[lang.toUpperCase()] || item?.label?.en || item?.label?.EN || item?.label?.ru || item?.label?.RU || item?.id || "";
+}
+
+function normalizeOption(option, blockKey, index) {
+  if (typeof option === "string") {
+    return {
+      id: `${blockKey}_${index + 1}`,
+      label: { ru: option, en: option, RU: option, EN: option },
+      prompt: { ru: option, en: option, RU: option, EN: option },
+      weight: 1,
+      tags: [],
+    };
+  }
+
+  const id = option.id || `${blockKey}_${index + 1}`;
+  const labelRu = option.label?.ru || option.label?.RU || option.labelRu || option.label_ru || option.label || id;
+  const labelEn = option.label?.en || option.label?.EN || option.labelEn || option.label_en || option.promptEn || option.phraseEn || labelRu;
+  const promptEn = option.prompt?.en || option.prompt?.EN || option.promptEn || option.phraseEn || "";
+  const promptRu = option.prompt?.ru || option.prompt?.RU || option.promptRu || option.phraseRu || promptEn;
+
+  return {
+    id,
+    label: { ru: labelRu, en: labelEn, RU: labelRu, EN: labelEn },
+    prompt: { ru: promptRu, en: promptEn, RU: promptRu, EN: promptEn },
+    weight: Number(option.weight) > 0 ? Number(option.weight) : 1,
+    tags: Array.isArray(option.tags) ? option.tags : [],
+  };
+}
+
+const SHOT_SIZE_OPTIONS = [
+  { id: "EXTREME_CLOSEUP", label: { RU: "Экстремальный крупный", EN: "Extreme close-up" }, prompt: { RU: "экстремальный крупный план", EN: "extreme close-up" } },
+  { id: "CLOSEUP", label: { RU: "Крупный план", EN: "Close-up" }, prompt: { RU: "крупный план", EN: "close-up" } },
+  { id: "HEADSHOT", label: { RU: "Хедшот", EN: "Headshot" }, prompt: { RU: "хедшот", EN: "headshot" } },
+  { id: "BUST", label: { RU: "Погрудный", EN: "Bust" }, prompt: { RU: "погрудный кадр", EN: "bust shot" } },
+  { id: "WAIST_UP", label: { RU: "По пояс", EN: "Waist-up" }, prompt: { RU: "кадр по пояс", EN: "waist-up shot" } },
+  { id: "THREE_QUARTER", label: { RU: "3/4", EN: "3/4" }, prompt: { RU: "кадр 3/4", EN: "3/4 shot" } },
+  { id: "FULL_BODY", label: { RU: "Полный рост", EN: "Full body" }, prompt: { RU: "в полный рост", EN: "full body shot" } },
+];
+
+const CAMERA_ANGLE_OPTIONS = [
+  { id: "EYE_LEVEL", label: { RU: "На уровне глаз", EN: "Eye-level" }, prompt: { RU: "ракурс на уровне глаз", EN: "eye-level angle" } },
+  { id: "HIGH_ANGLE", label: { RU: "Сверху", EN: "High angle" }, prompt: { RU: "высокий ракурс", EN: "high angle shot" } },
+  { id: "LOW_ANGLE", label: { RU: "Снизу", EN: "Low angle" }, prompt: { RU: "низкий ракурс", EN: "low angle shot" } },
+  { id: "DUTCH", label: { RU: "Наклонный", EN: "Dutch tilt" }, prompt: { RU: "легкий наклон камеры", EN: "subtle dutch tilt" } },
+  { id: "OTS", label: { RU: "Через плечо", EN: "Over-the-shoulder" }, prompt: { RU: "ракурс через плечо", EN: "over-the-shoulder angle" } },
+  { id: "MIRROR_SELFIE", label: { RU: "Зеркальное селфи", EN: "Mirror selfie" }, prompt: { RU: "зеркальное селфи", EN: "mirror selfie angle" } },
+  { id: "FROM_BEHIND", label: { RU: "Со спины", EN: "From behind" }, prompt: { RU: "ракурс со спины", EN: "from behind angle" } },
+  { id: "CANDID_SIDE", label: { RU: "Боковой candid", EN: "Candid side" }, prompt: { RU: "боковой candid ракурс", EN: "candid side angle" } },
+  { id: "LONG_LENS", label: { RU: "Длинный фокус", EN: "Long-lens" }, prompt: { RU: "длиннофокусный candid ракурс", EN: "long-lens candid angle" } },
+  { id: "TOP_DOWN", label: { RU: "Топ-даун", EN: "Top-down" }, prompt: { RU: "ракурс сверху вниз", EN: "top-down angle" } },
+];
+
+const PROFILES = Object.fromEntries(Object.entries(RAW_PROFILES).map(([key, profile]) => [key, {
+  key,
+  ...(() => {
+    const rawRu = profile.labelRu || profile.label_ru || key;
+    const rawEn = profile.labelEn || profile.label_en || toTitleFromKey(key);
+    const ru = getProfileTitleSubtitle("ru", key, rawRu, key);
+    const en = getProfileTitleSubtitle("en", key, rawEn, toTitleFromKey(key));
+    return {
+      title: { ru: ru.title, en: en.title },
+      subtitle: { ru: ru.subtitle, en: en.subtitle },
+    };
+  })(),
+  master: profile.masterEn || "",
+  safeBlock: profile.safeBlockEn || "",
+  stability: profile.stabilityEn || "",
+  rules: Array.isArray(profile.rules) ? profile.rules : [],
+  scenarios: (profile.scenarios || []).map(scenario => ({
+    key: scenario.id,
+    labelRu: scenario.labelRu || scenario.label_ru || scenario.id,
+    labelEn: scenario.labelEn || scenario.label_en || toTitleFromKey(scenario.id),
+    filters: scenario.filters || {}
+  })),
+  blocks: (() => {
+    const mapped = (profile.blocks || [])
+      .filter(block => block.key !== "framing" && block.key !== "style")
+      .map(block => ({
+        key: block.key,
+        titleRu: block.titleRu || block.title_ru || block.key,
+        titleEn: block.titleEn || block.title_en || uiText.en.blockTitles[block.key] || toTitleFromKey(block.key),
+        type: block.pick || "single",
+        ...(block.limit !== undefined ? { limit: block.limit } : {}),
+        items: (block.options || []).map((option, index) => normalizeOption(option, block.key, index))
+      }));
+
+    mapped.push({
+      key: "shot_size",
+      titleRu: "Крупность",
+      titleEn: "Shot size",
+      type: "single",
+      items: SHOT_SIZE_OPTIONS.map((option, index) => normalizeOption(option, "shot_size", index)),
+    });
+    mapped.push({
+      key: "camera_angle",
+      titleRu: "Ракурс камеры",
+      titleEn: "Camera angle",
+      type: "single",
+      items: CAMERA_ANGLE_OPTIONS.map((option, index) => normalizeOption(option, "camera_angle", index)),
+    });
+    return mapped;
+  })()
+}]));
+
+
+const els = {
+  appTitle: document.getElementById("appTitle"),
+  uiLangLabel: document.getElementById("uiLangLabel"),
+  uiLangSelect: document.getElementById("uiLangSelect"),
+  blocksCardTitle: document.getElementById("blocksCardTitle"),
+  promptCardTitle: document.getElementById("promptCardTitle"),
+  promptLangLabel: document.getElementById("promptLangLabel"),
+  blocks: document.getElementById("blocks"),
+  prompt: document.getElementById("prompt"),
+  status: document.getElementById("status"),
+  modeLabel: document.getElementById("modeLabel"),
+  profileSelect: document.getElementById("profileSelect"),
+  scenarioWrap: document.getElementById("scenarioWrap"),
+  scenarioSelect: document.getElementById("scenarioSelect"),
+  cameraWrap: document.getElementById("cameraWrap"),
+  cameraTitle: document.getElementById("cameraTitle"),
+  cameraDistanceLabel: document.getElementById("cameraDistanceLabel"),
+  cameraDistance: document.getElementById("cameraDistance"),
+  cameraDistanceValue: document.getElementById("cameraDistanceValue"),
+  distanceTrackWrap: document.getElementById("distanceTrackWrap"),
+  distanceFovCone: document.getElementById("distanceFovCone"),
+  distanceFovBase: document.getElementById("distanceFovBase"),
+  cameraFovHandle: document.getElementById("cameraFovHandle"),
+  cameraShotIndicator: document.getElementById("cameraShotIndicator"),
+  cameraFocalLabel: document.getElementById("cameraFocalLabel"),
+  cameraFocalValue: document.getElementById("cameraFocalValue"),
+  cameraFocalHint: document.getElementById("cameraFocalHint"),
+  cameraAngleLabel: document.getElementById("cameraAngleLabel"),
+  cameraAngleValue: document.getElementById("cameraAngleValue"),
+  angleAxisHint: document.getElementById("angleAxisHint"),
+  anglePad: document.getElementById("anglePad"),
+  angleDot: document.getElementById("angleDot"),
+  viewModeSegment: document.getElementById("viewModeSegment"),
+  viewModeFrontBtn: document.getElementById("viewModeFrontBtn"),
+  viewModeBackBtn: document.getElementById("viewModeBackBtn"),
+  angleResetBtn: document.getElementById("angleResetBtn"),
+  characterMaster: document.getElementById("characterMaster"),
+  stylePackWrap: document.getElementById("stylePackWrap"),
+  stylePackTitle: document.getElementById("stylePackTitle"),
+  stylePackSelect: document.getElementById("stylePackSelect"),
+  saveCharacterMasterBtn: document.getElementById("saveCharacterMasterBtn"),
+  defaultCharacterMasterBtn: document.getElementById("defaultCharacterMasterBtn"),
+  characterTitle: document.getElementById("characterTitle"),
+  stabilityText: document.getElementById("stabilityText"),
+  saveStabilityBtn: document.getElementById("saveStabilityBtn"),
+  defaultStabilityBtn: document.getElementById("defaultStabilityBtn"),
+  stabilityTitle: document.getElementById("stabilityTitle"),
+  phoneRefTitle: document.getElementById("phoneRefTitle"),
+  includeMaster: document.getElementById("includeMaster"),
+  includeSafeBlock: document.getElementById("includeSafeBlock"),
+  includeStability: document.getElementById("includeStability"),
+  realismGuard: document.getElementById("realismGuard"),
+  includeMasterLabel: document.getElementById("includeMasterLabel"),
+  includeSafeBlockLabel: document.getElementById("includeSafeBlockLabel"),
+  includeStabilityLabel: document.getElementById("includeStabilityLabel"),
+  realismGuardLabel: document.getElementById("realismGuardLabel"),
+  promptLangSelect: document.getElementById("promptLangSelect"),
+  safeToggleWrap: document.getElementById("safeToggleWrap"),
+  copyBtn: document.getElementById("copyBtn"),
+  randomBtn: document.getElementById("randomBtn"),
+  unlockAllBtn: document.getElementById("unlockAllBtn"),
+  tenVariantsBtn: document.getElementById("tenVariantsBtn"),
+  clearBtn: document.getElementById("clearBtn"),
+  variantsTitle: document.getElementById("variantsTitle"),
+  variantsList: document.getElementById("variantsList"),
+  autoFixNotice: document.getElementById("autoFixNotice"),
+  phoneRefCard: document.getElementById("phoneRefCard"),
+  phoneRefImage: document.getElementById("phoneRefImage"),
+  phoneRefHint: document.getElementById("phoneRefHint"),
+  debugPanel: document.getElementById("debugPanel"),
+  debugLog: document.getElementById("debugLog"),
+  debugCopyBtn: document.getElementById("debugCopyBtn"),
+  debugRunReproBtn: document.getElementById("debugRunReproBtn"),
+  debugRunChecksBtn: document.getElementById("debugRunChecksBtn"),
+};
+
+const state = Object.fromEntries(Object.keys(PROFILES).map(k => [k, {}]));
+const cameraState = Object.fromEntries(Object.keys(PROFILES).map(k => [k, {
+  distanceM: 1.8,
+  focalMm: 35,
+  angleX: 0,
+  altitudeY: 0,
+  viewMode: "front",
+}]));
+const scenarioState = Object.fromEntries(Object.keys(PROFILES).map(k => [k, null]));
+const expandedState = Object.fromEntries(Object.keys(PROFILES).map(k => [k, {}]));
+const lockState = Object.fromEntries(Object.keys(PROFILES).map(k => [k, {}]));
+const phoneRuleState = Object.fromEntries(Object.keys(PROFILES).map(k => [k, { autoAdded: false, recommended: false, required: false, selected: false }]));
+const phoneOptOutState = Object.fromEntries(Object.keys(PROFILES).map(k => [k, false]));
+let currentProfileKey = "SAFE";
+let uiLang = "ru";
+let promptLang = "en";
+let stylePackId = "INSTAGRAM_REAL";
+let realismGuardEnabled = true;
+const CHARACTER_MASTER_KEY = "promptBuilder.characterMaster.i18n.v1";
+const LOCKS_KEY = "promptBuilder.blockLocks.v1";
+const PROMPT_LANG_KEY = "promptBuilder.promptLang.v1";
+const UI_LANG_KEY = "promptBuilder.uiLang.v1";
+const STABILITY_KEY = "promptBuilder.stability.i18n.v1";
+const STYLE_PACK_KEY = "promptBuilder.stylePack.v1";
+const REALISM_GUARD_KEY = "promptBuilder.realismGuard.v1";
+const CAMERA_KEY = "promptBuilder.camera.v1";
+const DIST_MIN = 0.3;
+const DIST_MAX = 6;
+const BASE_OFFSET_PX = 120;
+const WEDGE_SAFE_RIGHT = BASE_OFFSET_PX + 24;
+const WEDGE_SAFE_TOP = 18;
+const WEDGE_SAFE_BOTTOM = 18;
+const FOV_HALF_MIN_PX = 6;
+const FOV_HALF_MAX_PX = 80;
+const FOCAL_MIN = 14;
+const FOCAL_MAX = 85;
+const DEFAULT_CHARACTER_MASTER_EN = "same female character: 23-26, fair skin, light freckles, light brown/dark blonde hair, high ponytail, soft bangs, same face identity across all images.";
+const DEFAULT_CHARACTER_MASTER_RU = "та же героиня: 23-26 лет, светлая кожа, лёгкие веснушки, русые/тёмно-русые волосы, высокий хвост, мягкая челка, одинаковая внешность во всех изображениях.";
+const DEFAULT_STABILITY_RU = "сохраняй ту же внешность, без изменений лица. корректная анатомия. реалистичные руки. без лишних пальцев. стабильная одежда. стабильный фон. без искажений тела.";
+let lastAutoFixMessage = "";
+let autoFixNoticeTimer = null;
+let characterMasterI18n = { EN: DEFAULT_CHARACTER_MASTER_EN, RU: DEFAULT_CHARACTER_MASTER_RU };
+const stabilityI18n = Object.fromEntries(Object.keys(PROFILES).map(k => [k, { EN: PROFILES[k].stability || "", RU: DEFAULT_STABILITY_RU }]));
+
+function captureSelectionSnapshot(profileKey = currentProfileKey) {
+  try {
+    return JSON.parse(JSON.stringify(state[profileKey] || {}));
+  } catch {
+    return {};
+  }
+}
+
+function selectionDiff(before, after) {
+  const b = before || {};
+  const a = after || {};
+  const keys = new Set([...Object.keys(b), ...Object.keys(a)]);
+  const diff = [];
+  keys.forEach((key) => {
+    const left = JSON.stringify(b[key]);
+    const right = JSON.stringify(a[key]);
+    if (left !== right) diff.push({ key, before: b[key], after: a[key] });
+  });
+  return diff;
+}
+
+function debugRecord(source, path, oldValue, nextValue) {
+  if (!DEBUG) return;
+  const event = {
+    t: new Date().toISOString(),
+    source,
+    path,
+    old: oldValue,
+    next: nextValue,
+    stack: (new Error().stack || "").split("\n").slice(2, 6).join("\n"),
+  };
+  debugEvents.push(event);
+  if (debugEvents.length > DEBUG_RING_MAX) debugEvents.shift();
+  renderDebugPanel();
+}
+
+function getPathTarget(path) {
+  const parts = String(path || "").split(".");
+  const root = parts.shift();
+  const rootMap = {
+    state,
+    cameraState,
+    lockState,
+    scenarioState,
+    expandedState,
+    phoneRuleState,
+    phoneOptOutState,
+    autoSelectionState,
+  };
+  return { rootObj: rootMap[root], parts, root };
+}
+
+function getByPath(path) {
+  const { rootObj, parts } = getPathTarget(path);
+  let cur = rootObj;
+  for (const part of parts) {
+    if (cur == null) return undefined;
+    cur = cur[part];
+  }
+  return cur;
+}
+
+function setByPath(path, value, source = "unknown") {
+  if (DEBUG && /^camera\//.test(source) && /(^state\.[^.]+\.location)|(^state\.[^.]+\.accessories)/.test(path)) {
+    throw new Error(`Guard violation: ${source} attempted to write ${path}`);
+  }
+  const { rootObj, parts } = getPathTarget(path);
+  if (!rootObj || !parts.length) return;
+  let cur = rootObj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const key = parts[i];
+    if (cur[key] == null || typeof cur[key] !== "object") cur[key] = {};
+    cur = cur[key];
+  }
+  const leaf = parts[parts.length - 1];
+  const oldValue = cur[leaf];
+  cur[leaf] = value;
+  debugRecord(source, path, oldValue, value);
+}
+
+function renderDebugPanel() {
+  if (!DEBUG || !els.debugPanel || !els.debugLog) return;
+  els.debugPanel.classList.add("open");
+  const lines = debugEvents.slice(-30).map((e) => {
+    const oldVal = JSON.stringify(e.old);
+    const nextVal = JSON.stringify(e.next);
+    return `[${e.t}] ${e.source} :: ${e.path} :: ${oldVal} -> ${nextVal}`;
+  });
+  els.debugLog.textContent = lines.join("\n");
+}
+
+function assertCameraDidNotChangeSelection(beforeSnapshot, source) {
+  if (!DEBUG || !/^camera\//.test(source)) return;
+  const after = captureSelectionSnapshot();
+  const diff = selectionDiff(beforeSnapshot, after);
+  if (diff.length) {
+    console.error("[DEBUG] Camera mutated selection", { source, diff, events: debugEvents.slice(-20) });
+    throw new Error(`Distance changed non-camera state: ${JSON.stringify(diff)}`);
+  }
+}
+
+function normalizeComparable(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[.,!?;:()[\]{}"']/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function validateLocalization() {
+  const warns = [];
+  Object.entries(PROFILES).forEach(([profileKey, profile]) => {
+    (profile.blocks || []).forEach(block => {
+      (block.items || []).forEach(item => {
+        const labelRU = item?.label?.RU || item?.label?.ru || "";
+        const labelEN = item?.label?.EN || item?.label?.en || "";
+        const promptEN = item?.prompt?.EN || item?.prompt?.en || "";
+        const promptRU = item?.prompt?.RU || item?.prompt?.ru || "";
+        const path = `${profileKey}.${block.key}.${item.id}`;
+
+        if (!String(labelRU).trim()) warns.push(`${path}: missing label.RU`);
+        if (!String(labelEN).trim()) warns.push(`${path}: missing label.EN`);
+        if (!String(promptEN).trim()) warns.push(`${path}: missing prompt.EN`);
+
+        const ruNorm = normalizeComparable(promptRU);
+        const labelNorm = normalizeComparable(labelRU);
+        if (!ruNorm || ruNorm.length < 6) warns.push(`${path}: prompt.RU too short`);
+        if (ruNorm && labelNorm && ruNorm === labelNorm) warns.push(`${path}: prompt.RU equals label.RU`);
+      });
+    });
+  });
+
+  if (warns.length) {
+    warns.slice(0, 200).forEach(msg => console.warn("[validateLocalization]", msg));
+    if (warns.length > 200) console.warn("[validateLocalization]", `...and ${warns.length - 200} more warnings`);
+  }
+}
+
+function loadCharacterMaster() {
+  try {
+    const saved = localStorage.getItem(CHARACTER_MASTER_KEY);
+    if (!saved) return;
+    const parsed = JSON.parse(saved);
+    if (!parsed || typeof parsed !== "object") return;
+    characterMasterI18n = {
+      EN: (parsed.EN || "").trim() || DEFAULT_CHARACTER_MASTER_EN,
+      RU: (parsed.RU || "").trim() || DEFAULT_CHARACTER_MASTER_RU,
+    };
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function loadPromptLang() {
+  try {
+    const raw = localStorage.getItem(PROMPT_LANG_KEY);
+    if (!raw) return "en";
+    const norm = String(raw).trim().toLowerCase();
+    if (norm === "ru") return "ru";
+    if (norm === "en") return "en";
+    if (raw === "RU") return "ru";
+    if (raw === "EN") return "en";
+    return "en";
+  } catch {
+    return "en";
+  }
+}
+
+function savePromptLang(lang) {
+  try {
+    localStorage.setItem(PROMPT_LANG_KEY, lang === "ru" ? "ru" : "en");
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function loadUiLang(fallback = "ru") {
+  try {
+    const raw = localStorage.getItem(UI_LANG_KEY);
+    if (!raw) return fallback;
+    const norm = String(raw).trim().toLowerCase();
+    return norm === "en" ? "en" : "ru";
+  } catch {
+    return fallback;
+  }
+}
+
+function saveUiLang(lang) {
+  try {
+    localStorage.setItem(UI_LANG_KEY, lang === "en" ? "en" : "ru");
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function getStylePackById(id) {
+  return STYLE_PACKS[id] ? id : "INSTAGRAM_REAL";
+}
+
+function loadStylePack() {
+  try {
+    const raw = localStorage.getItem(STYLE_PACK_KEY);
+    if (!raw) return "INSTAGRAM_REAL";
+    return getStylePackById(raw);
+  } catch {
+    return "INSTAGRAM_REAL";
+  }
+}
+
+function saveStylePack(stylePack) {
+  try {
+    localStorage.setItem(STYLE_PACK_KEY, getStylePackById(stylePack));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function loadRealismGuard() {
+  try {
+    const raw = localStorage.getItem(REALISM_GUARD_KEY);
+    if (raw === "0") return false;
+    if (raw === "1") return true;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+function saveRealismGuard(enabled) {
+  try {
+    localStorage.setItem(REALISM_GUARD_KEY, enabled ? "1" : "0");
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function focalToFovDeg(focalMm, sensorWidth = 36) {
+  const f = clamp(Number(focalMm) || 35, FOCAL_MIN, FOCAL_MAX);
+  const fovRad = 2 * Math.atan(sensorWidth / (2 * f));
+  return Number((fovRad * (180 / Math.PI)).toFixed(1));
+}
+
+function toDistanceUiValue(realValue) {
+  return DIST_MAX + DIST_MIN - clamp(Number(realValue) || 1.8, DIST_MIN, DIST_MAX);
+}
+
+function fromDistanceUiValue(uiValue) {
+  return DIST_MAX + DIST_MIN - clamp(Number(uiValue) || toDistanceUiValue(1.8), DIST_MIN, DIST_MAX);
+}
+
+function normalizeCamera(raw) {
+  const base = {
+    distanceM: 1.8,
+    focalMm: 35,
+    angleX: 0,
+    altitudeY: 0,
+    viewMode: "front",
+  };
+  if (!raw || typeof raw !== "object") return base;
+  const viewMode = raw.viewMode === "back" ? "back" : "front";
+  const normalized = {
+    distanceM: clamp(Number(raw.distanceM) || base.distanceM, 0.3, 6),
+    focalMm: clamp(Math.round(Number(raw.focalMm) || base.focalMm), FOCAL_MIN, FOCAL_MAX),
+    angleX: clamp(Number(raw.angleX), -1, 1),
+    altitudeY: clamp(Number(raw.altitudeY), -1, 1),
+    viewMode,
+  };
+  if (!Number.isFinite(normalized.angleX)) normalized.angleX = 0;
+  if (!Number.isFinite(normalized.altitudeY)) normalized.altitudeY = 0;
+  return normalized;
+}
+
+function loadCameraState() {
+  try {
+    const raw = localStorage.getItem(CAMERA_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return;
+    Object.keys(PROFILES).forEach((profileKey) => {
+      cameraState[profileKey] = normalizeCamera(parsed[profileKey]);
+    });
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function saveCameraState() {
+  try {
+    localStorage.setItem(CAMERA_KEY, JSON.stringify(cameraState));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function loadLocks() {
+  try {
+    const raw = localStorage.getItem(LOCKS_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return;
+    Object.keys(PROFILES).forEach(profileKey => {
+      const profileLocks = parsed[profileKey];
+      if (!profileLocks || typeof profileLocks !== "object") return;
+      lockState[profileKey] = profileLocks;
+    });
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function saveLocks() {
+  try {
+    localStorage.setItem(LOCKS_KEY, JSON.stringify(lockState));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function saveCharacterMasterStorage() {
+  try {
+    localStorage.setItem(CHARACTER_MASTER_KEY, JSON.stringify(characterMasterI18n));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function loadStability() {
+  try {
+    const saved = localStorage.getItem(STABILITY_KEY);
+    if (!saved) return;
+    const parsed = JSON.parse(saved);
+    if (!parsed || typeof parsed !== "object") return;
+
+    Object.keys(PROFILES).forEach(profileKey => {
+      const profileData = parsed[profileKey];
+      if (!profileData || typeof profileData !== "object") return;
+      stabilityI18n[profileKey] = {
+        EN: (profileData.EN || "").trim() || PROFILES[profileKey].stability || "",
+        RU: (profileData.RU || "").trim() || DEFAULT_STABILITY_RU,
+      };
+    });
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function saveStabilityStorage() {
+  try {
+    localStorage.setItem(STABILITY_KEY, JSON.stringify(stabilityI18n));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function renderCharacterEditor() {
+  const key = promptLang === "ru" ? "RU" : "EN";
+  els.characterMaster.value = characterMasterI18n[key] || "";
+}
+
+function renderStylePack() {
+  const langKey = getUiLang().toUpperCase();
+  const options = Object.keys(STYLE_PACKS);
+  els.stylePackTitle.textContent = t("stylePackTitle");
+  els.stylePackSelect.innerHTML = "";
+  options.forEach(key => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.className = "glass-dropdown-item";
+    opt.textContent = STYLE_PACKS[key]?.label?.[langKey] || key;
+    els.stylePackSelect.appendChild(opt);
+  });
+  stylePackId = getStylePackById(stylePackId);
+  els.stylePackSelect.value = stylePackId;
+}
+
+function renderCameraControls() {
+  const cam = getCamera(currentProfileKey);
+  const shot = distanceToShot(cam.distanceM);
+  const uiLangKey = getUiLang() === "ru" ? "RU" : "EN";
+  const decoded = getViewAndPitchLabels(cam, uiLangKey);
+  const fovDeg = focalToFovDeg(cam.focalMm);
+  const uiDistance = toDistanceUiValue(cam.distanceM);
+  els.cameraDistance.value = String(uiDistance);
+
+  els.cameraDistanceValue.textContent = t("cameraDistanceValue", { value: cam.distanceM.toFixed(2) });
+  els.cameraFocalValue.textContent = t("cameraFocalValue", { mm: cam.focalMm, fov: fovDeg.toFixed(1) });
+  els.cameraAngleValue.textContent = `${decoded.viewText} · ${decoded.altitudeText}`;
+  els.cameraShotIndicator.textContent = t("cameraShot", { shot: shot.label });
+
+  const trackRect = (els.distanceTrackWrap || els.cameraDistance).getBoundingClientRect();
+  const containerWidth = Math.max(1, trackRect.width || els.cameraDistance.clientWidth || 1);
+  const trackWidth = Math.max(1, containerWidth - WEDGE_SAFE_RIGHT);
+  const overlayHeight = 140;
+  const percentUI = (uiDistance - DIST_MIN) / (DIST_MAX - DIST_MIN);
+  const x0 = clamp(percentUI * trackWidth, 0, trackWidth);
+  const ay = overlayHeight / 2;
+  const fovRad = (fovDeg * Math.PI) / 180;
+  const x1 = x0 + BASE_OFFSET_PX;
+  const innerTop = WEDGE_SAFE_TOP;
+  const innerBottom = overlayHeight - WEDGE_SAFE_BOTTOM;
+  const maxHalfByBounds = Math.max(0, Math.min(ay - innerTop, innerBottom - ay));
+  const hFromFov = Math.tan(fovRad / 2) * BASE_OFFSET_PX;
+  const halfH = clamp(hFromFov, FOV_HALF_MIN_PX, Math.min(FOV_HALF_MAX_PX, maxHalfByBounds));
+  const y1 = ay - halfH;
+  const y2 = ay + halfH;
+
+  const points = [
+    `${x0.toFixed(1)},${ay.toFixed(1)}`,
+    `${x1.toFixed(1)},${y1.toFixed(1)}`,
+    `${x1.toFixed(1)},${y2.toFixed(1)}`,
+  ];
+  console.assert(Number.isFinite(halfH), "[CAMERA] halfH must be finite", { fovDeg, fovRad, halfH });
+  console.assert(x1 >= x0, "[CAMERA] x1 must be on the right side of apex", { x0, x1 });
+  console.assert(x1 <= containerWidth, "[CAMERA] x1 must stay inside container width", { x1, containerWidth, trackWidth, safe: WEDGE_SAFE_RIGHT });
+  console.assert(y1 >= innerTop && y2 <= innerBottom, "[CAMERA] wedge must stay inside vertical safe bounds", { y1, y2, innerTop, innerBottom, halfH, hFromFov });
+  console.assert(points.length === 3, "[CAMERA] wedge must have exactly 3 points", points);
+  if (els.distanceFovCone) {
+    const parent = els.distanceFovCone.ownerSVGElement;
+    if (parent) {
+      parent.style.width = `${containerWidth.toFixed(1)}px`;
+      parent.setAttribute("viewBox", `0 0 ${containerWidth.toFixed(1)} ${overlayHeight}`);
+    }
+    els.distanceFovCone.setAttribute("points", points.join(" "));
+    if (els.distanceFovBase) {
+      els.distanceFovBase.setAttribute("x1", x1.toFixed(1));
+      els.distanceFovBase.setAttribute("y1", y1.toFixed(1));
+      els.distanceFovBase.setAttribute("x2", x1.toFixed(1));
+      els.distanceFovBase.setAttribute("y2", y2.toFixed(1));
+    }
+  }
+  if (els.cameraFovHandle) {
+    els.cameraFovHandle.style.left = `${x1.toFixed(1)}px`;
+  }
+  if (els.cameraDistance) {
+    els.cameraDistance.style.width = `${trackWidth.toFixed(1)}px`;
+  }
+
+  const pad = els.anglePad;
+  const dot = els.angleDot;
+  if (pad && dot) {
+    const rect = pad.getBoundingClientRect();
+    const w = rect.width || pad.clientWidth || 120;
+    const h = rect.height || pad.clientHeight || 120;
+    const radius = Math.max(10, Math.min(w, h) / 2 - 7);
+    const cx = w / 2 + cam.angleX * radius;
+    const cy = h / 2 - cam.altitudeY * radius;
+    dot.style.left = `${cx}px`;
+    dot.style.top = `${cy}px`;
+  }
+
+  [els.viewModeFrontBtn, els.viewModeBackBtn].forEach((btn) => {
+    if (!btn) return;
+    btn.classList.toggle("active", btn.dataset.mode === cam.viewMode);
+  });
+}
+
+function applyStaticI18n() {
+  document.documentElement.lang = getUiLang().toLowerCase();
+  document.title = t("appTitle");
+  els.appTitle.textContent = t("appTitle");
+  els.uiLangLabel.textContent = t("uiLangLabel");
+  els.blocksCardTitle.textContent = t("blocksCardTitle");
+  els.promptCardTitle.textContent = t("promptCardTitle");
+  els.promptLangLabel.textContent = t("promptLangLabel");
+  els.copyBtn.textContent = t("copy");
+  els.randomBtn.textContent = t("random");
+  els.tenVariantsBtn.textContent = t("tenVariants");
+  els.clearBtn.textContent = t("reset");
+  els.unlockAllBtn.textContent = t("clearLocks");
+  els.characterTitle.textContent = t("characterTitle");
+  els.stabilityTitle.textContent = t("stabilityTitle");
+  els.saveCharacterMasterBtn.textContent = t("save");
+  els.defaultCharacterMasterBtn.textContent = t("resetDefault");
+  els.saveStabilityBtn.textContent = t("save");
+  els.defaultStabilityBtn.textContent = t("resetDefault");
+  els.phoneRefTitle.textContent = t("phoneReference");
+  els.phoneRefImage.alt = t("phoneReference");
+  els.stylePackTitle.textContent = t("stylePackTitle");
+  els.cameraTitle.textContent = t("cameraTitle");
+  els.cameraDistanceLabel.textContent = t("cameraDistance");
+  els.cameraFocalLabel.textContent = t("cameraFocal");
+  els.cameraFocalHint.textContent = t("cameraFocalHint");
+  if (els.cameraFovHandle) els.cameraFovHandle.setAttribute("aria-label", t("cameraFovHandleLabel"));
+  els.cameraAngleLabel.textContent = t("cameraAngleLabel");
+  els.angleAxisHint.textContent = t("cameraAxisHint");
+  els.viewModeFrontBtn.textContent = t("viewFront");
+  els.viewModeBackBtn.textContent = t("viewBack");
+  els.angleResetBtn.textContent = t("angleReset");
+  els.includeMasterLabel.textContent = t("includeMaster");
+  els.includeSafeBlockLabel.textContent = t("includeSafe");
+  els.includeStabilityLabel.textContent = t("includeStability");
+  els.realismGuardLabel.textContent = t("realismGuard");
+  els.variantsTitle.textContent = t("tenVariants");
+  const profile = PROFILES[currentProfileKey];
+  if (profile) els.modeLabel.textContent = t("modeProfile", { label: getProfileLabel(profile) });
+  renderStylePack();
+  renderCameraControls();
+}
+
+function renderStabilityEditor() {
+  const langKey = promptLang === "ru" ? "RU" : "EN";
+  const profileStability = stabilityI18n[currentProfileKey] || { EN: "", RU: "" };
+  els.stabilityText.value = profileStability[langKey] || "";
+}
+
+function saveCharacterMaster() {
+  const langKey = promptLang === "ru" ? "RU" : "EN";
+  characterMasterI18n[langKey] = els.characterMaster.value.trim();
+  saveCharacterMasterStorage();
+  buildPrompt();
+  els.status.textContent = t("characterSaved", { lang: langKey });
+  setTimeout(buildPrompt, 800);
+}
+
+function insertDefaultCharacterMaster() {
+  const langKey = promptLang === "ru" ? "RU" : "EN";
+  characterMasterI18n[langKey] = langKey === "EN"
+    ? DEFAULT_CHARACTER_MASTER_EN
+    : DEFAULT_CHARACTER_MASTER_RU;
+  renderCharacterEditor();
+  saveCharacterMaster();
+}
+
+function saveStability() {
+  const langKey = promptLang === "ru" ? "RU" : "EN";
+  const profileStability = stabilityI18n[currentProfileKey] || { EN: "", RU: "" };
+  profileStability[langKey] = els.stabilityText.value.trim();
+  stabilityI18n[currentProfileKey] = profileStability;
+  saveStabilityStorage();
+  buildPrompt();
+  els.status.textContent = t("stabilitySaved", { lang: langKey });
+  setTimeout(buildPrompt, 800);
+}
+
+function insertDefaultStability() {
+  const langKey = promptLang === "ru" ? "RU" : "EN";
+  const profileStability = stabilityI18n[currentProfileKey] || { EN: "", RU: "" };
+  profileStability[langKey] = langKey === "EN"
+    ? (PROFILES[currentProfileKey].stability || "")
+    : DEFAULT_STABILITY_RU;
+  stabilityI18n[currentProfileKey] = profileStability;
+  renderStabilityEditor();
+  saveStability();
+}
+
+function randInt(min, maxInclusive) {
+  return Math.floor(Math.random() * (maxInclusive - min + 1)) + min;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function weightedPick(indices, items, getWeight) {
+  if (!indices.length) return undefined;
+  const weights = indices.map(idx => {
+    const weightSource = typeof getWeight === "function"
+      ? getWeight(idx, items[idx])
+      : items[idx]?.weight;
+    const w = Number(weightSource);
+    return Number.isFinite(w) && w > 0 ? w : 1;
+  });
+  const total = weights.reduce((acc, w) => acc + w, 0);
+  if (total <= 0) return indices[randInt(0, indices.length - 1)];
+
+  let r = Math.random() * total;
+  for (let i = 0; i < indices.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return indices[i];
+  }
+  return indices[indices.length - 1];
+}
+
+function weightedPickMany(indices, items, count, getWeight) {
+  const pool = indices.slice();
+  const picked = [];
+  const need = Math.min(count, pool.length);
+
+  for (let i = 0; i < need; i++) {
+    const idx = weightedPick(pool, items, getWeight);
+    if (idx === undefined) break;
+    picked.push(idx);
+    const at = pool.indexOf(idx);
+    if (at >= 0) pool.splice(at, 1);
+  }
+  return picked;
+}
+
+function getSelectedItems(profile, s, category) {
+  const block = profile.blocks.find(b => b.key === category);
+  if (!block) return [];
+
+  if (block.type === "single") {
+    const idx = s[category];
+    return idx !== undefined && block.items[idx] ? [block.items[idx]] : [];
+  }
+
+  const arr = Array.isArray(s[category]) ? s[category] : [];
+  return arr.map(idx => block.items[idx]).filter(Boolean);
+}
+
+function itemHasAnyTag(item, tags) {
+  if (!item || !Array.isArray(item.tags) || !Array.isArray(tags) || !tags.length) return false;
+  return item.tags.some(tag => tags.includes(tag));
+}
+
+function isRuleConditionMet(condition, profileKey, scenario, s, profile) {
+  if (!condition || typeof condition !== "object") return true;
+
+  if (condition.profileId && condition.profileId !== profileKey) return false;
+  if (condition.scenarioId && scenario?.key !== condition.scenarioId) return false;
+
+  const selected = condition.selected;
+  if (!selected || typeof selected !== "object") return true;
+
+  return Object.entries(selected).every(([category, checks]) => {
+    const selectedItems = getSelectedItems(profile, s, category);
+    if (!selectedItems.length) return false;
+    if (!checks || typeof checks !== "object") return true;
+
+    if (Array.isArray(checks.ids) && checks.ids.length) {
+      const ids = selectedItems.map(item => item.id);
+      if (!checks.ids.some(id => ids.includes(id))) return false;
+    }
+
+    if (Array.isArray(checks.tagsAny) && checks.tagsAny.length) {
+      if (!selectedItems.some(item => itemHasAnyTag(item, checks.tagsAny))) return false;
+    }
+
+    if (Array.isArray(checks.tagsAll) && checks.tagsAll.length) {
+      const collected = new Set(selectedItems.flatMap(item => item.tags || []));
+      if (!checks.tagsAll.every(tag => collected.has(tag))) return false;
+    }
+
+    return true;
+  });
+}
+
+function getBoostedWeight(profile, scenario, partialState, block, item) {
+  const baseWeight = Number(item?.weight) > 0 ? Number(item.weight) : 1;
+  const rules = Array.isArray(profile.rules) ? profile.rules : [];
+  let factor = 1;
+  let bonusWeight = 0;
+
+  rules.forEach(rule => {
+    if (!isRuleConditionMet(rule.if, profile.key || currentProfileKey, scenario, partialState, profile)) return;
+    const boosts = Array.isArray(rule.boost) ? rule.boost : [];
+
+    boosts.forEach(entry => {
+      if (!entry || entry.category !== block.key) return;
+      if (Array.isArray(entry.matchIds) && entry.matchIds.length && !entry.matchIds.includes(item.id)) return;
+      if (Array.isArray(entry.matchTags) && entry.matchTags.length && !itemHasAnyTag(item, entry.matchTags)) return;
+
+      const mul = Number(entry.factor);
+      if (Number.isFinite(mul) && mul > 0) factor *= mul;
+
+      const bonus = Number(entry.bonusWeight);
+      if (Number.isFinite(bonus) && bonus > 0) bonusWeight += bonus;
+    });
+  });
+
+  return baseWeight * factor + bonusWeight;
+}
+
+function getCurrentScenario(profile = PROFILES[currentProfileKey]) {
+  const scenarios = profile.scenarios || [];
+  if (!scenarios.length) return null;
+  const activeScenarioKey = scenarioState[currentProfileKey];
+  return scenarios.find(s => s.key === activeScenarioKey) || scenarios[0];
+}
+
+function renderAutoFixNotice(message = "") {
+  els.autoFixNotice.textContent = message;
+}
+
+function showAutoFixNotice(message) {
+  lastAutoFixMessage = message || "";
+  renderAutoFixNotice(lastAutoFixMessage);
+  if (autoFixNoticeTimer) clearTimeout(autoFixNoticeTimer);
+  if (!lastAutoFixMessage) return;
+  autoFixNoticeTimer = setTimeout(() => {
+    lastAutoFixMessage = "";
+    renderAutoFixNotice("");
+  }, 2600);
+}
+
+function getAllowedIndices(block, scenario) {
+  const allowedIds = scenario?.filters?.[block.key];
+  if (!allowedIds) return [...Array(block.items.length).keys()];
+
+  const allowed = [];
+  allowedIds.forEach(id => {
+    const idx = block.items.findIndex(item => item.id === id);
+    if (idx >= 0) allowed.push(idx);
+  });
+  return allowed;
+}
+
+function getConstraintCompatibleIndices(profile, s, block, available) {
+  const engine = window.PROMPT_CONSTRAINTS;
+  if (!engine || typeof engine.filterCompatibleIndices !== "function") return available;
+  const filtered = engine.filterCompatibleIndices(profile, s, block, available);
+  return filtered.length ? filtered : available;
+}
+
+function getConstraintWeightFactor(profile, s, block, item) {
+  const engine = window.PROMPT_CONSTRAINTS;
+  if (!engine || typeof engine.getWeightFactor !== "function") return 1;
+  const factor = Number(engine.getWeightFactor(profile, s, block, item));
+  return Number.isFinite(factor) && factor > 0 ? factor : 1;
+}
+
+function getPhoneRuleMeta(profile, s, scenario) {
+  const engine = window.PROMPT_CONSTRAINTS;
+  if (!engine || typeof engine.getPhoneRuleMeta !== "function") {
+    return { phoneRequired: false, phoneRecommended: false, phoneSelected: isPhoneSelected(profile, s), mirrorScene: false };
+  }
+  return engine.getPhoneRuleMeta(profile, s, (block) => getAllowedIndices(block, scenario));
+}
+
+function applyAutoRules(profile, s, scenario, { forcePhone = false, allowPhoneAutofill = false } = {}) {
+  const engine = window.PROMPT_CONSTRAINTS;
+  if (!engine || typeof engine.applyAutoRules !== "function") {
+    phoneRuleState[currentProfileKey] = {
+      autoAdded: false,
+      recommended: false,
+      required: false,
+      selected: isPhoneSelected(profile, s),
+    };
+    return { changed: false, phoneAutoAdded: false };
+  }
+
+  const result = engine.applyAutoRules(profile, s, {
+    getAllowedIndices: (block) => getAllowedIndices(block, scenario),
+    isLocked: (blockKey) => isBlockLocked(blockKey),
+    forcePhone: forcePhone && !phoneOptOutState[currentProfileKey],
+    allowPhoneAutofill,
+  }) || {};
+
+  const meta = getPhoneRuleMeta(profile, s, scenario);
+  phoneRuleState[currentProfileKey] = {
+    autoAdded: Boolean(result.phoneAutoAdded),
+    recommended: Boolean(meta.phoneRecommended),
+    required: Boolean(meta.phoneRequired),
+    selected: Boolean(meta.phoneSelected),
+  };
+
+  if (!meta.phoneRecommended) phoneOptOutState[currentProfileKey] = false;
+  return result;
+}
+
+function enforceSceneCompatibility(profile, s, scenario) {
+  const engine = window.PROMPT_CONSTRAINTS;
+  if (!engine || typeof engine.enforceConstraints !== "function") return { changed: false };
+  const result = engine.enforceConstraints(profile, s, {
+    getAllowedIndices: (block) => getAllowedIndices(block, scenario),
+    isLocked: (blockKey) => isBlockLocked(blockKey),
+  });
+  if (result?.changed) return { changed: true, message: t("sceneAutoFix") };
+  return { changed: false };
+}
+
+function getGenerationBlocks(profile) {
+  const priority = {
+    location: 1,
+    pose: 2,
+    outfit: 3,
+    accessories: 4,
+    shot_size: 5,
+    camera_angle: 6,
+    emotion: 6,
+    light: 7,
+    style: 8,
+  };
+  return profile.blocks
+    .filter(block => block.key !== "shot_size" && block.key !== "camera_angle")
+    .slice()
+    .sort((a, b) => (priority[a.key] || 50) - (priority[b.key] || 50));
+}
+
+function sanitizeStateByScenario(profile, s, scenario) {
+  if (!scenario) return;
+  profile.blocks.forEach(block => {
+    const allowed = new Set(getAllowedIndices(block, scenario));
+
+    if (block.type === "single") {
+      const idx = s[block.key];
+      if (idx !== undefined && !allowed.has(idx)) s[block.key] = undefined;
+      return;
+    }
+
+    const arr = Array.isArray(s[block.key]) ? s[block.key] : [];
+    s[block.key] = arr.filter(idx => allowed.has(idx));
+  });
+}
+
+function randomDistanceWeighted() {
+  const bands = [
+    { min: 0.3, max: 0.45, weight: 0.6 },
+    { min: 0.45, max: 0.75, weight: 1.0 },
+    { min: 0.75, max: 1.05, weight: 1.1 },
+    { min: 1.05, max: 1.5, weight: 1.2 },
+    { min: 1.5, max: 2.1, weight: 1.6 },
+    { min: 2.1, max: 3.2, weight: 1.8 },
+    { min: 3.2, max: 6.0, weight: 1.0 },
+  ];
+  const total = bands.reduce((sum, b) => sum + b.weight, 0);
+  let r = Math.random() * total;
+  const chosen = bands.find((b) => {
+    r -= b.weight;
+    return r <= 0;
+  }) || bands[bands.length - 1];
+  return Number((chosen.min + Math.random() * (chosen.max - chosen.min)).toFixed(2));
+}
+
+function randomCameraSettings(base) {
+  const source = normalizeCamera(base);
+  const viewMode = Math.random() < 0.18 ? "back" : "front";
+  const focalPool = [18, 20, 24, 28, 35, 35, 35, 40, 50, 55, 70, 85];
+  const focalMm = focalPool[randInt(0, focalPool.length - 1)];
+  return {
+    distanceM: randomDistanceWeighted(),
+    focalMm,
+    angleX: Number((Math.random() * 2 - 1).toFixed(2)),
+    altitudeY: Number((Math.random() * 2 - 1).toFixed(2)),
+    viewMode: source.viewMode === "back" && Math.random() < 0.2 ? "back" : viewMode,
+  };
+}
+
+function makeRandomState(profile, scenario) {
+  const s = {};
+  getGenerationBlocks(profile).forEach(block => {
+    const available = getAllowedIndices(block, scenario);
+    const compatible = getConstraintCompatibleIndices(profile, s, block, available);
+    const getWeight = idx => {
+      const item = block.items[idx];
+      const base = getBoostedWeight(profile, scenario, s, block, item);
+      const mul = getConstraintWeightFactor(profile, s, block, item);
+      return base * mul;
+    };
+
+    if (block.type === "single") {
+      if (!compatible.length) {
+        s[block.key] = undefined;
+        return;
+      }
+      s[block.key] = weightedPick(compatible, block.items, getWeight);
+    } else {
+      const limit = block.limit ?? compatible.length;
+      const count = randInt(0, Math.min(limit, compatible.length));
+      s[block.key] = weightedPickMany(compatible, block.items, count, getWeight);
+    }
+  });
+  cameraState[currentProfileKey] = randomCameraSettings(getCamera(currentProfileKey));
+  syncCameraToSelection(profile, s, getCamera(currentProfileKey));
+  enforceCameraCompatibility(profile, s);
+  applyAutoRules(profile, s, scenario, { forcePhone: true });
+  validateAndFixSelection(profile, s, scenario);
+  return s;
+}
+
+function makeRandomStateWithLocks(profile, scenario, currentState) {
+  const s = {};
+  const current = currentState || {};
+
+  profile.blocks.forEach(block => {
+    if (!isBlockLocked(block.key)) return;
+    s[block.key] = current[block.key];
+  });
+
+  getGenerationBlocks(profile).forEach(block => {
+    if (isBlockLocked(block.key)) return;
+    const available = getAllowedIndices(block, scenario);
+    const compatible = getConstraintCompatibleIndices(profile, s, block, available);
+    const getWeight = idx => {
+      const item = block.items[idx];
+      const base = getBoostedWeight(profile, scenario, s, block, item);
+      const mul = getConstraintWeightFactor(profile, s, block, item);
+      return base * mul;
+    };
+
+    if (block.type === "single") {
+      s[block.key] = compatible.length ? weightedPick(compatible, block.items, getWeight) : undefined;
+      return;
+    }
+
+    if (!compatible.length) {
+      s[block.key] = [];
+      return;
+    }
+    const limit = block.limit ?? compatible.length;
+    const count = randInt(0, Math.min(limit, compatible.length));
+    s[block.key] = weightedPickMany(compatible, block.items, count, getWeight);
+  });
+
+  cameraState[currentProfileKey] = randomCameraSettings(getCamera(currentProfileKey));
+  syncCameraToSelection(profile, s, getCamera(currentProfileKey));
+  enforceCameraCompatibility(profile, s);
+  applyAutoRules(profile, s, scenario, { forcePhone: true });
+  validateAndFixSelection(profile, s, scenario);
+
+  return s;
+}
+
+function buildStateSignature(profile, s) {
+  const chunks = profile.blocks.map(block => {
+    if (block.type === "single") {
+      const idx = s[block.key];
+      const itemId = idx !== undefined && block.items[idx] ? block.items[idx].id : "-";
+      return `${block.key}:${itemId}`;
+    }
+
+    const arr = Array.isArray(s[block.key]) ? s[block.key] : [];
+    const ids = arr
+      .filter(i => block.items[i])
+      .map(i => block.items[i].id)
+      .sort();
+    return `${block.key}:${ids.join(",")}`;
+  });
+
+  return chunks.join("|");
+}
+
+function getSingleOptionId(profile, s, key) {
+  const block = profile.blocks.find(b => b.key === key && b.type === "single");
+  if (!block) return null;
+  const idx = s[key];
+  if (idx === undefined || !block.items[idx]) return null;
+  return block.items[idx].id;
+}
+
+function canUseKeyCategories(profile, s, usage, maxPerOption) {
+  const keys = ["location", "outfit", "pose"];
+  for (const key of keys) {
+    const optionId = getSingleOptionId(profile, s, key);
+    if (!optionId) continue;
+    const map = usage.get(key);
+    const count = map?.get(optionId) || 0;
+    if (count >= maxPerOption) return false;
+  }
+  return true;
+}
+
+function trackKeyCategories(profile, s, usage) {
+  const keys = ["location", "outfit", "pose"];
+  keys.forEach(key => {
+    const optionId = getSingleOptionId(profile, s, key);
+    if (!optionId) return;
+    const map = usage.get(key);
+    map.set(optionId, (map.get(optionId) || 0) + 1);
+  });
+}
+
+function punctuate(text) {
+  const value = (text || "").trim();
+  if (!value) return "";
+  if (/[.!?…]$/.test(value)) return value;
+  return value + ".";
+}
+
+function getItemPhrase(block, idx, lang) {
+  const item = block.items[idx];
+  if (!item) return "";
+  const upper = lang.toUpperCase();
+  return item?.prompt?.[lang]
+    || item?.prompt?.[upper]
+    || item?.prompt?.en
+    || item?.prompt?.EN
+    || item?.prompt?.ru
+    || item?.prompt?.RU
+    || item?.label?.[lang]
+    || item?.label?.[upper]
+    || item?.label?.en
+    || item?.label?.EN
+    || item?.label?.ru
+    || item?.label?.RU
+    || "";
+}
+
+function getSelectedSingleItem(profile, s, key) {
+  const block = profile.blocks.find(b => b.key === key && b.type === "single");
+  if (!block) return null;
+  const idx = s[key];
+  if (idx === undefined || !block.items[idx]) return null;
+  return block.items[idx];
+}
+
+function getItemSearchText(item) {
+  return [
+    item?.label?.EN, item?.label?.RU, item?.label?.en, item?.label?.ru,
+    item?.prompt?.EN, item?.prompt?.RU, item?.prompt?.en, item?.prompt?.ru,
+    item?.id,
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+const REALISM_GUARD = {
+  EN: "realistic skin texture, natural imperfections, no plastic skin, no CGI look, avoid AI artifacts, avoid stock photo lighting.",
+  RU: "реалистичная текстура кожи, естественные несовершенства, без пластиковой кожи, без CGI-вида, избегать AI-артефактов и стокового света.",
+};
+
+const SHOT_DISTANCE_MAP = [
+  {
+    id: "EXTREME_CLOSEUP",
+    min: 0.3,
+    max: 0.45,
+    label: "Extreme CU",
+    prompt: {
+      EN: "extreme close-up, macro-like framing, facial detail, shallow depth of field",
+      RU: "экстремальный крупный план, почти макро, детали лица, малая глубина резкости",
+    },
+  },
+  {
+    id: "CLOSEUP",
+    min: 0.45,
+    max: 0.75,
+    label: "CU",
+    prompt: {
+      EN: "close-up portrait, head and shoulders, face prominent",
+      RU: "крупный портрет, голова и плечи, лицо доминирует в кадре",
+    },
+  },
+  {
+    id: "HEADSHOT",
+    min: 0.75,
+    max: 1.05,
+    label: "Headshot",
+    prompt: {
+      EN: "headshot, face centered, minimal background",
+      RU: "хедшот, лицо по центру, минимум фона",
+    },
+  },
+  {
+    id: "BUST",
+    min: 1.05,
+    max: 1.5,
+    label: "Bust",
+    prompt: {
+      EN: "bust shot, chest-up framing",
+      RU: "погрудный кадр, уровень до груди",
+    },
+  },
+  {
+    id: "WAIST_UP",
+    min: 1.5,
+    max: 2.1,
+    label: "Waist-up",
+    prompt: {
+      EN: "waist-up shot, hands may appear",
+      RU: "кадр по пояс, руки могут попадать в кадр",
+    },
+  },
+  {
+    id: "THREE_QUARTER",
+    min: 2.1,
+    max: 3.2,
+    label: "3/4",
+    prompt: {
+      EN: "3/4 body shot, knees visible",
+      RU: "кадр 3/4, видны колени",
+    },
+  },
+  {
+    id: "FULL_BODY",
+    min: 3.2,
+    max: 6,
+    label: "Full",
+    prompt: {
+      EN: "full-body shot, head-to-toe, feet visible",
+      RU: "полный рост, от головы до ног, видны стопы",
+    },
+  },
+];
+
+function getCamera(profileKey = currentProfileKey) {
+  if (!cameraState[profileKey]) cameraState[profileKey] = normalizeCamera(null);
+  return cameraState[profileKey];
+}
+
+function distanceToShot(distanceM) {
+  const d = clamp(Number(distanceM) || 1.8, 0.3, 6);
+  const item = SHOT_DISTANCE_MAP.find(entry => d >= entry.min && d <= entry.max) || SHOT_DISTANCE_MAP[SHOT_DISTANCE_MAP.length - 1];
+  return item;
+}
+
+function getViewAndPitchLabels(camera, langKey, context = {}) {
+  const x = clamp(Number(camera?.angleX) || 0, -1, 1);
+  const y = clamp(Number(camera?.altitudeY) || 0, -1, 1);
+  const mode = camera?.viewMode === "back" ? "back" : "front";
+  const left = langKey === "RU" ? "слева" : "left";
+  const right = langKey === "RU" ? "справа" : "right";
+  const isLeft = x < 0;
+  const side = isLeft ? left : right;
+
+  let viewText = "";
+  const contextText = `${context.poseText || ""} ${context.framingText || ""}`.toLowerCase();
+  const hasOverShoulder = /(over[- ]?the[- ]?shoulder|через плечо)/i.test(contextText);
+
+  if (mode === "back") {
+    if (hasOverShoulder) {
+      viewText = langKey === "RU" ? "вид со спины, ракурс через плечо" : "from behind, over-the-shoulder angle";
+    } else if (Math.abs(x) < 0.25) {
+      viewText = langKey === "RU" ? "вид со спины" : "back view";
+    } else if (Math.abs(x) <= 0.6) {
+      viewText = langKey === "RU"
+        ? (isLeft ? "ракурс 3/4 сзади (слева)" : "ракурс 3/4 сзади (справа)")
+        : `three-quarter from behind (${side})`;
+    } else {
+      viewText = langKey === "RU"
+        ? (isLeft ? "вид со спины, поворот влево" : "вид со спины, поворот вправо")
+        : `back view, slight turn ${side}`;
+    }
+  } else {
+    if (Math.abs(x) < 0.25) viewText = langKey === "RU" ? "вид спереди" : "front view";
+    else if (Math.abs(x) < 0.75) viewText = langKey === "RU" ? `ракурс 3/4 (${side})` : `three-quarter view, turned slightly to the ${side}`;
+    else viewText = langKey === "RU" ? `профиль (${side})` : `side profile (${side})`;
+  }
+
+  let altitudeText = "";
+  if (y >= 0.75) altitudeText = langKey === "RU" ? "сверху (взгляд вниз)" : "high angle, looking down";
+  else if (y >= 0.25) altitudeText = langKey === "RU" ? "слегка сверху" : "slightly high angle";
+  else if (y <= -0.75) altitudeText = langKey === "RU" ? "снизу (взгляд вверх)" : "low angle, looking up";
+  else if (y <= -0.25) altitudeText = langKey === "RU" ? "слегка снизу" : "slightly low angle";
+  else altitudeText = langKey === "RU" ? "на уровне глаз" : "eye-level";
+
+  return { viewText, altitudeText };
+}
+
+function anglesToDirective(camera, langKey, context = {}) {
+  const { viewText, altitudeText } = getViewAndPitchLabels(camera, langKey, context);
+  return `${viewText}, ${altitudeText}`;
+}
+
+const autoSelectionState = Object.fromEntries(Object.keys(PROFILES).map(k => [k, { accessories: {} }]));
+
+function findBlockItemIndex(profile, blockKey, itemId) {
+  const block = profile.blocks.find(b => b.key === blockKey);
+  if (!block) return undefined;
+  const idx = block.items.findIndex(item => item.id === itemId);
+  return idx >= 0 ? idx : undefined;
+}
+
+function syncCameraToSelection(profile, s, camera) {
+  const shot = distanceToShot(camera.distanceM);
+  const shotIdx = findBlockItemIndex(profile, "shot_size", shot.id);
+  if (shotIdx !== undefined) s.shot_size = shotIdx;
+
+  let angleId = "EYE_LEVEL";
+  if (camera.viewMode === "back") angleId = "FROM_BEHIND";
+  else if (camera.altitudeY > 0.25) angleId = "HIGH_ANGLE";
+  else if (camera.altitudeY < -0.25) angleId = "LOW_ANGLE";
+  else if (Math.abs(camera.angleX) > 0.6) angleId = "CANDID_SIDE";
+  else if (Math.abs(camera.angleX) > 0.2) angleId = "OTS";
+
+  const angleIdx = findBlockItemIndex(profile, "camera_angle", angleId);
+  if (angleIdx !== undefined) s.camera_angle = angleIdx;
+}
+
+function buildCameraDirective(profile, s, langKey, options = {}) {
+  const camera = getCamera(currentProfileKey);
+  if (options.syncSelection) syncCameraToSelection(profile, s, camera);
+  const shot = distanceToShot(camera.distanceM);
+  const shotLine = shot?.prompt?.[langKey] || "";
+  const poseText = getItemSearchText(getSelectedSingleItem(profile, s, "pose"));
+  const framingText = getItemSearchText(getSelectedSingleItem(profile, s, "framing"));
+  const angleLine = anglesToDirective(camera, langKey, { poseText, framingText });
+  const lines = [];
+  if (shotLine) lines.push(punctuate(shotLine));
+  if (angleLine) lines.push(punctuate(angleLine));
+  return lines;
+}
+
+function buildLensDirective(langKey) {
+  const cam = getCamera(currentProfileKey);
+  const mm = clamp(Math.round(Number(cam.focalMm) || 35), FOCAL_MIN, FOCAL_MAX);
+  if (mm <= 24) {
+    return langKey === "RU"
+      ? `съёмка на ${mm} мм, широкий угол обзора`
+      : `shot on a ${mm}mm lens, wide-angle field of view`;
+  }
+  if (mm >= 50) {
+    return langKey === "RU"
+      ? `съёмка на ${mm} мм, сжатие перспективы и более узкий угол обзора`
+      : `shot on a ${mm}mm lens, telephoto compression, narrower field of view`;
+  }
+  return langKey === "RU"
+    ? `съёмка на ${mm} мм, естественная перспектива`
+    : `shot on a ${mm}mm lens, natural perspective`;
+}
+
+function poseNeedsLongDistance(profile, s) {
+  const poseItem = getSelectedSingleItem(profile, s, "pose");
+  if (!poseItem) return false;
+  const txt = getItemSearchText(poseItem);
+  return /(walking|walk|run|stride|идет|идёт|шага|в движении|full body|полный рост|ноги)/i.test(txt);
+}
+
+function enforceCameraCompatibility(profile, s) {
+  const camera = getCamera(currentProfileKey);
+  const shot = distanceToShot(camera.distanceM);
+  if (shot.id === "EXTREME_CLOSEUP" && poseNeedsLongDistance(profile, s)) {
+    camera.distanceM = Math.max(2.1, camera.distanceM);
+    syncCameraToSelection(profile, s, camera);
+    saveCameraState();
+    showAutoFixNotice(t("distanceAutoShift"));
+    return true;
+  }
+  if (camera.distanceM < 2.1 && poseNeedsLongDistance(profile, s)) {
+    camera.distanceM = 2.1;
+    syncCameraToSelection(profile, s, camera);
+    saveCameraState();
+    showAutoFixNotice(t("distanceAutoShift"));
+    return true;
+  }
+  return false;
+}
+
+function validateAndFixSelection(profile, s, scenario) {
+  let changed = false;
+  let message = "";
+  const cam = getCamera(currentProfileKey);
+  const poseText = getItemSearchText(getSelectedSingleItem(profile, s, "pose"));
+  const locationText = getItemSearchText(getSelectedSingleItem(profile, s, "location"));
+  const isMirrorScene = /(mirror selfie|mirror|bathroom mirror|зеркал|ванн)/i.test(`${poseText} ${locationText}`);
+
+  if (cam.viewMode === "back" && isMirrorScene) {
+    cam.viewMode = "front";
+    changed = true;
+    message = t("mirrorBackNotAllowed");
+    saveCameraState();
+    renderCameraControls();
+  }
+
+  if (/(fix|adjust).*(glasses)|поправля.*очк/i.test(poseText)) {
+    const accBlock = profile.blocks.find(b => b.key === "accessories");
+    if (accBlock && accBlock.type === "multi") {
+      const glassesIdx = accBlock.items.findIndex(item => /glasses|очки/i.test(getItemSearchText(item)));
+      if (glassesIdx >= 0) {
+        const current = Array.isArray(s.accessories) ? s.accessories.slice() : [];
+        if (!current.includes(glassesIdx)) {
+          const limit = Number(accBlock.limit) > 0 ? Number(accBlock.limit) : 2;
+          if (current.length >= limit) current.shift();
+          current.push(glassesIdx);
+          s.accessories = current;
+          changed = true;
+          message = t("sceneAutoFix");
+        }
+      }
+    }
+  }
+
+  const sceneFix = enforceSceneCompatibility(profile, s, scenario);
+  if (sceneFix.changed) {
+    changed = true;
+    message = sceneFix.message || t("sceneAutoFix");
+  }
+
+  return { changed, message };
+}
+
+function composePromptByState(profile, s, forcedLang = null, options = {}) {
+  const parts = [];
+  const lang = forcedLang === "ru" || forcedLang === "en"
+    ? forcedLang
+    : (promptLang === "ru" ? "ru" : "en");
+  const langKey = lang === "ru" ? "RU" : "EN";
+  const scenario = getCurrentScenario(profile);
+  const phoneMeta = getPhoneRuleMeta(profile, s, scenario);
+
+  if (els.includeMaster.checked) {
+    const charMaster = (characterMasterI18n[langKey] || "").trim();
+    if (charMaster) parts.push(charMaster);
+  }
+
+  const locationBlock = profile.blocks.find(b => b.key === "location");
+  if (locationBlock?.type === "single") {
+    const idx = s.location;
+    if (idx !== undefined && locationBlock.items[idx]) {
+      const phrase = getItemPhrase(locationBlock, idx, lang);
+      if (phrase) parts.push(punctuate(phrase));
+    }
+  }
+
+  const cameraLines = buildCameraDirective(profile, s, langKey, {
+    syncSelection: Boolean(options.syncCameraToSelection),
+  });
+  if (cameraLines.length) parts.push(...cameraLines);
+  const lensLine = buildLensDirective(langKey);
+  if (lensLine) parts.push(punctuate(lensLine));
+
+  const outfitBlock = profile.blocks.find(b => b.key === "outfit");
+  if (outfitBlock?.type === "single") {
+    const idx = s.outfit;
+    if (idx !== undefined && outfitBlock.items[idx]) {
+      const phrase = getItemPhrase(outfitBlock, idx, lang);
+      if (phrase) parts.push(punctuate(phrase));
+    }
+  }
+
+  const accessoriesBlock = profile.blocks.find(b => b.key === "accessories");
+  if (accessoriesBlock) {
+    const arr = s.accessories || [];
+    if (arr.length) {
+      const phrases = arr
+        .filter(i => accessoriesBlock.items[i])
+        .map(i => getItemPhrase(accessoriesBlock, i, lang))
+        .filter(Boolean);
+      if (phrases.length) parts.push(punctuate(phrases.join(", ")));
+    }
+
+    if (PHONE_KIT.enabled && isPhoneSelected(profile, s)) {
+      let phoneKitText = lang === "ru" ? PHONE_KIT.promptRu : PHONE_KIT.promptEn;
+      if (phoneMeta.mirrorScene) {
+        phoneKitText = lang === "ru" ? PHONE_KIT.mirrorPromptRu : PHONE_KIT.mirrorPromptEn;
+      }
+      if (phoneKitText && phoneKitText.trim()) parts.push(punctuate(phoneKitText.trim()));
+    }
+  }
+
+  const poseBlock = profile.blocks.find(b => b.key === "pose");
+  if (poseBlock?.type === "single") {
+    const idx = s.pose;
+    if (idx !== undefined && poseBlock.items[idx]) {
+      const phrase = getItemPhrase(poseBlock, idx, lang);
+      if (phrase) parts.push(punctuate(phrase));
+    }
+  }
+
+  const emotionBlock = profile.blocks.find(b => b.key === "emotion");
+  if (emotionBlock?.type === "single") {
+    const idx = s.emotion;
+    if (idx !== undefined && emotionBlock.items[idx]) {
+      const phrase = getItemPhrase(emotionBlock, idx, lang);
+      if (phrase) parts.push(punctuate(phrase));
+    }
+  }
+  const lightBlock = profile.blocks.find(b => b.key === "light");
+  if (lightBlock && lightBlock.type === "single") {
+    const lightIdx = s.light;
+    if (lightIdx !== undefined && lightBlock.items[lightIdx]) {
+      const lightPhrase = getItemPhrase(lightBlock, lightIdx, lang);
+      if (lightPhrase) parts.push(punctuate(lightPhrase));
+    }
+  }
+  const hasSafe = Boolean(profile.safeBlock && profile.safeBlock.trim());
+  if (hasSafe && els.includeSafeBlock.checked) parts.push(profile.safeBlock.trim());
+  const stylePrompt = (STYLE_PACKS[stylePackId]?.prompt?.[langKey] || STYLE_PACKS.INSTAGRAM_REAL.prompt[langKey] || "").trim();
+  if (stylePrompt) parts.push(punctuate(stylePrompt));
+  if (els.includeMaster.checked) {
+    // keep master toggle semantics; style pack remains global stylistic source
+  }
+  if (realismGuardEnabled) parts.push(langKey === "RU" ? REALISM_GUARD.RU : REALISM_GUARD.EN);
+  if (els.includeStability.checked) {
+    const profileStability = stabilityI18n[currentProfileKey] || { EN: profile.stability || "", RU: DEFAULT_STABILITY_RU };
+    const stabilityText = (profileStability[langKey] || "").trim();
+    if (stabilityText) parts.push(stabilityText);
+  }
+
+  return parts.join("\n");
+}
+
+function isPhoneItem(item) {
+  if (!item) return false;
+  const nameRu = (item?.label?.ru || "").toLowerCase();
+  const nameEn = (item?.label?.en || "").toLowerCase();
+  const promptEn = (item?.prompt?.en || "").toLowerCase();
+  const promptRu = (item?.prompt?.ru || "").toLowerCase();
+  return nameRu.includes("телефон")
+    || nameEn.includes("phone")
+    || promptEn.includes("iphone")
+    || promptRu.includes("телефон");
+}
+
+function isPhoneSelected(profile, s) {
+  const accessoriesBlock = profile.blocks.find(block => block.key === "accessories");
+  if (!accessoriesBlock) return false;
+
+  if (accessoriesBlock.type === "single") {
+    const idx = s[accessoriesBlock.key];
+    return idx !== undefined && isPhoneItem(accessoriesBlock.items[idx]);
+  }
+
+  const arr = Array.isArray(s[accessoriesBlock.key]) ? s[accessoriesBlock.key] : [];
+  return arr.some(idx => isPhoneItem(accessoriesBlock.items[idx]));
+}
+
+function renderPhoneReference() {
+  const profile = PROFILES[currentProfileKey];
+  const s = state[currentProfileKey] || {};
+  const visible = PHONE_KIT.enabled && isPhoneSelected(profile, s);
+
+  els.phoneRefCard.classList.toggle("hidden", !visible);
+  if (!visible) return;
+
+  els.phoneRefImage.src = PHONE_KIT.imageUrl;
+  els.phoneRefHint.textContent = t("phoneHint");
+}
+
+function setProfile(profileKey) {
+  const prevProfileKey = currentProfileKey;
+  currentProfileKey = profileKey;
+  const profile = PROFILES[profileKey];
+  const scenario = getCurrentScenario(profile);
+
+  if (prevProfileKey !== profileKey) expandedState[profileKey] = {};
+  autoSelectionState[profileKey] = { accessories: {} };
+  phoneRuleState[profileKey] = { autoAdded: false, recommended: false, required: false, selected: false };
+  phoneOptOutState[profileKey] = false;
+  lastAutoFixMessage = "";
+  renderAutoFixNotice("");
+  els.modeLabel.textContent = t("modeProfile", { label: getProfileLabel(profile) });
+
+  const hasSafe = Boolean(profile.safeBlock && profile.safeBlock.trim());
+  els.safeToggleWrap.style.display = hasSafe ? "flex" : "none";
+  els.includeSafeBlock.checked = hasSafe;
+
+  renderScenarioSelect();
+  sanitizeStateByScenario(profile, state[currentProfileKey], scenario);
+  renderCameraControls();
+  renderStabilityEditor();
+  renderStylePack();
+  renderBlocks();
+  buildPrompt({ source: "profile/change" });
+}
+
+function renderScenarioSelect() {
+  const profile = PROFILES[currentProfileKey];
+  const scenarios = profile.scenarios || [];
+
+  if (!scenarios.length) {
+    scenarioState[currentProfileKey] = null;
+    els.scenarioWrap.classList.add("hidden");
+    els.scenarioSelect.innerHTML = "";
+    return;
+  }
+
+  els.scenarioWrap.classList.remove("hidden");
+  els.scenarioSelect.innerHTML = "";
+
+  scenarios.forEach(scenario => {
+    const opt = document.createElement("option");
+    opt.value = scenario.key;
+    opt.className = "glass-dropdown-item";
+    opt.textContent = t("scenarioPrefix", { label: getScenarioLabel(scenario) });
+    els.scenarioSelect.appendChild(opt);
+  });
+
+  const savedScenario = scenarioState[currentProfileKey];
+  const active = scenarios.find(s => s.key === savedScenario) || scenarios[0];
+  scenarioState[currentProfileKey] = active.key;
+  els.scenarioSelect.value = active.key;
+}
+
+function setScenario(scenarioKey) {
+  const profile = PROFILES[currentProfileKey];
+  scenarioState[currentProfileKey] = scenarioKey || null;
+  const scenario = getCurrentScenario(profile);
+  sanitizeStateByScenario(profile, state[currentProfileKey], scenario);
+  renderCameraControls();
+  autoSelectionState[currentProfileKey] = { accessories: {} };
+  phoneRuleState[currentProfileKey] = { autoAdded: false, recommended: false, required: false, selected: false };
+  phoneOptOutState[currentProfileKey] = false;
+  lastAutoFixMessage = "";
+  renderAutoFixNotice("");
+  renderStylePack();
+  renderBlocks();
+  buildPrompt({ source: "selection/clear" });
+}
+
+function toggleBlockExpanded(blockKey) {
+  const profileExpanded = expandedState[currentProfileKey] || {};
+  profileExpanded[blockKey] = !profileExpanded[blockKey];
+  expandedState[currentProfileKey] = profileExpanded;
+  renderBlocks();
+}
+
+function isBlockLocked(blockKey) {
+  return Boolean((lockState[currentProfileKey] || {})[blockKey]);
+}
+
+function toggleBlockLock(blockKey) {
+  const profileLocks = lockState[currentProfileKey] || {};
+  profileLocks[blockKey] = !profileLocks[blockKey];
+  lockState[currentProfileKey] = profileLocks;
+  saveLocks();
+  renderBlocks();
+}
+
+function clearAllLocks() {
+  lockState[currentProfileKey] = {};
+  saveLocks();
+  renderStylePack();
+  renderBlocks();
+  autoSelectionState[currentProfileKey] = { accessories: {} };
+  phoneRuleState[currentProfileKey] = { autoAdded: false, recommended: false, required: false, selected: false };
+  lastAutoFixMessage = "";
+  renderAutoFixNotice("");
+  els.status.textContent = t("locksCleared");
+  setTimeout(buildPrompt, 800);
+}
+
+function toggleItem(block, idx) {
+  const s = state[currentProfileKey];
+  const profile = PROFILES[currentProfileKey];
+  const scenario = getCurrentScenario(profile);
+  const wasPhoneSelected = block.key === "accessories" ? isPhoneSelected(profile, s) : false;
+  const targetItem = block.items[idx];
+  const targetIsPhone = block.key === "accessories" && isPhoneItem(targetItem);
+
+  if (block.type === "single") {
+    s[block.key] = s[block.key] === idx ? undefined : idx;
+  } else {
+    const arr = Array.isArray(s[block.key]) ? s[block.key].slice() : [];
+    const at = arr.indexOf(idx);
+    if (at >= 0) arr.splice(at, 1);
+    else {
+      if (block.limit && arr.length >= block.limit) return;
+      arr.push(idx);
+    }
+    s[block.key] = arr;
+  }
+
+  if (block.key === "accessories") {
+    autoSelectionState[currentProfileKey] = { accessories: {} };
+    phoneRuleState[currentProfileKey].autoAdded = false;
+    const nowPhoneSelected = isPhoneSelected(profile, s);
+    const phoneMeta = getPhoneRuleMeta(profile, s, scenario);
+
+    if (targetIsPhone && wasPhoneSelected && !nowPhoneSelected && phoneMeta.phoneRecommended) {
+      phoneOptOutState[currentProfileKey] = true;
+      showAutoFixNotice(t("phoneMirrorRecommend"));
+    } else if (targetIsPhone && nowPhoneSelected) {
+      phoneOptOutState[currentProfileKey] = false;
+    }
+  }
+
+  renderBlocks();
+  buildPrompt({ source: "selection/toggle" });
+}
+
+function renderBlocks() {
+  const profile = PROFILES[currentProfileKey];
+  const scenario = getCurrentScenario(profile);
+  const s = state[currentProfileKey];
+  els.blocks.innerHTML = "";
+
+  profile.blocks.forEach(block => {
+    if (block.key === "shot_size" || block.key === "camera_angle") return;
+    const wrap = document.createElement("div");
+    wrap.className = "block glass-surface";
+    const locked = isBlockLocked(block.key);
+    if (locked) wrap.classList.add("locked");
+
+    const head = document.createElement("div");
+    head.className = "blockHead";
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "blockTitleRow";
+
+    const title = document.createElement("h3");
+    title.className = "blockTitle";
+    title.textContent = getBlockTitle(block);
+
+    const lockBtn = document.createElement("button");
+    lockBtn.className = "lockBtn" + (locked ? " active" : "");
+    lockBtn.type = "button";
+    lockBtn.textContent = locked ? "🔒" : "🔓";
+    lockBtn.title = locked ? t("lockTitleLocked") : t("lockTitleUnlocked");
+    lockBtn.addEventListener("click", () => toggleBlockLock(block.key));
+
+    titleRow.appendChild(title);
+    titleRow.appendChild(lockBtn);
+
+    const hint = document.createElement("p");
+    hint.className = "blockHint";
+    hint.textContent = block.type === "single"
+      ? t("chooseOne")
+      : t("chooseMany", { limit: block.limit ?? "∞" });
+
+    head.appendChild(titleRow);
+    head.appendChild(hint);
+
+    if (block.key === "accessories") {
+      const meta = getPhoneRuleMeta(profile, s, scenario);
+      const info = phoneRuleState[currentProfileKey] || {};
+      if (info.autoAdded && meta.phoneSelected) {
+        const badge = document.createElement("p");
+        badge.className = "blockHint";
+        badge.textContent = t("phoneAutoAddedBadge");
+        head.appendChild(badge);
+      } else if (meta.phoneRecommended && !meta.phoneSelected) {
+        const warn = document.createElement("p");
+        warn.className = "blockHint";
+        warn.textContent = t("phoneMirrorRecommend");
+        head.appendChild(warn);
+      }
+    }
+
+    const chips = document.createElement("div");
+    chips.className = "chips";
+
+    const visibleItems = getAllowedIndices(block, scenario).map(idx => ({ item: block.items[idx], idx }));
+    const isExpanded = Boolean((expandedState[currentProfileKey] || {})[block.key]);
+    const hasOverflow = visibleItems.length > 12;
+    const shownItems = isExpanded ? visibleItems : visibleItems.slice(0, 12);
+
+    shownItems.forEach(({ item: it, idx }) => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      if (locked) chip.classList.add("chip--locked");
+
+      const active = block.type === "single"
+        ? s[block.key] === idx
+        : (Array.isArray(s[block.key]) && s[block.key].includes(idx));
+
+      if (active) chip.classList.add("active", "chip--active");
+      const label = getOptionLabel(it);
+      chip.textContent = label;
+      if (block.key === "accessories") {
+        const autoInfo = autoSelectionState[currentProfileKey]?.accessories?.[idx];
+        if (autoInfo?.auto) {
+          chip.textContent = `${label} · auto`;
+          chip.title = autoInfo.reason || "";
+        }
+      }
+      const previewLang = promptLang === "ru" ? "ru" : "en";
+      const previewUpper = previewLang.toUpperCase();
+      if (!chip.title) chip.title = it?.prompt?.[previewLang] || it?.prompt?.[previewUpper] || it?.prompt?.en || it?.prompt?.EN || it?.prompt?.ru || it?.prompt?.RU || "";
+      chip.addEventListener("click", () => toggleItem(block, idx));
+      chips.appendChild(chip);
+    });
+
+    wrap.appendChild(head);
+    wrap.appendChild(chips);
+
+    if (hasOverflow) {
+      const moreBtn = document.createElement("button");
+      moreBtn.className = "btn secondary btn-secondary blockMore";
+      moreBtn.type = "button";
+      moreBtn.textContent = isExpanded ? t("collapse") : t("showMore");
+      moreBtn.addEventListener("click", () => toggleBlockExpanded(block.key));
+      wrap.appendChild(moreBtn);
+    }
+
+    els.blocks.appendChild(wrap);
+  });
+}
+
+function buildPrompt(options = {}) {
+  const profile = PROFILES[currentProfileKey];
+  const scenario = getCurrentScenario(profile);
+  const s = state[currentProfileKey];
+  const source = typeof options === "string" ? options : (options?.source || "ui/build");
+  const skipSanitize = Boolean(options?.skipSanitize);
+  const skipEnforce = Boolean(options?.skipEnforce);
+  const skipAutoRules = Boolean(options?.skipAutoRules);
+
+  if (!skipSanitize) {
+    sanitizeStateByScenario(profile, s, scenario);
+  }
+  syncCameraToSelection(profile, s, getCamera(currentProfileKey));
+
+  if (!skipEnforce) {
+    const cameraAdjusted = enforceCameraCompatibility(profile, s);
+    if (cameraAdjusted) renderCameraControls();
+  }
+
+  autoSelectionState[currentProfileKey] = { accessories: {} };
+  if (!skipAutoRules) {
+    const autoRulesResult = applyAutoRules(profile, s, scenario, { forcePhone: true });
+    if (Array.isArray(autoRulesResult.autoAddedAccessories) && autoRulesResult.autoAddedAccessories.length) {
+      autoRulesResult.autoAddedAccessories.forEach((entry) => {
+        if (entry && Number.isInteger(entry.index)) {
+          autoSelectionState[currentProfileKey].accessories[entry.index] = {
+            auto: true,
+            reason: entry.reason || "",
+            strict: Boolean(entry.strict),
+          };
+        }
+      });
+    }
+    if (autoRulesResult.phoneAutoAdded) {
+      phoneOptOutState[currentProfileKey] = false;
+    }
+    if (!skipEnforce) {
+      const fixResult = validateAndFixSelection(profile, s, scenario);
+      if (fixResult.changed || autoRulesResult.changed) {
+        showAutoFixNotice(autoRulesResult.warning || fixResult.message || t("sceneAutoFix"));
+        renderBlocks();
+      }
+    }
+    const phoneMeta = getPhoneRuleMeta(profile, s, scenario);
+    if (phoneMeta.phoneRecommended && !phoneMeta.phoneSelected) {
+      showAutoFixNotice(t("phoneMirrorRecommend"));
+    }
+  } else {
+    phoneRuleState[currentProfileKey] = {
+      autoAdded: false,
+      recommended: false,
+      required: false,
+      selected: isPhoneSelected(profile, s),
+    };
+  }
+
+  els.prompt.value = composePromptByState(profile, s, null, { syncCameraToSelection: false });
+  renderCameraControls();
+  renderPhoneReference();
+  renderAutoFixNotice(lastAutoFixMessage);
+
+  const visibleBlocks = profile.blocks.filter(block => block.key !== "shot_size" && block.key !== "camera_angle");
+  const filledBlocks = visibleBlocks.reduce((acc, block) => {
+    if (block.type === "single") return acc + (s[block.key] !== undefined ? 1 : 0);
+    const arr = Array.isArray(s[block.key]) ? s[block.key] : [];
+    return acc + (arr.length > 0 ? 1 : 0);
+  }, 0);
+
+  const accessoriesBlock = profile.blocks.find(block => block.key === "accessories");
+  const accessoriesSelected = accessoriesBlock
+    ? (Array.isArray(s.accessories) ? s.accessories.length : 0)
+    : 0;
+  const accessoriesLimit = accessoriesBlock?.limit ?? 2;
+
+  const locksCount = Object.values(lockState[currentProfileKey] || {}).filter(Boolean).length;
+  els.status.textContent = t("statusFilled", {
+    filled: filledBlocks,
+    total: visibleBlocks.length,
+    acc: accessoriesSelected,
+    limit: accessoriesLimit,
+    locks: locksCount,
+  });
+}
+
+async function copyPrompt() {
+  try {
+    await navigator.clipboard.writeText(els.prompt.value);
+    els.status.textContent = t("copied");
+  } catch {
+    els.prompt.focus();
+    els.prompt.select();
+    document.execCommand("copy");
+    els.status.textContent = t("copiedFallback");
+  }
+  setTimeout(buildPrompt, 800);
+}
+
+function renderVariants(variants) {
+  els.variantsList.innerHTML = "";
+  variants.forEach((text, i) => {
+    const item = document.createElement("div");
+    item.className = "variantItem glass-surface";
+
+    const head = document.createElement("div");
+    head.className = "variantHead";
+
+    const idx = document.createElement("div");
+    idx.className = "variantIdx";
+    idx.textContent = t("variantN", { n: i + 1 });
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn secondary btn-secondary";
+    copyBtn.type = "button";
+    copyBtn.textContent = t("copy");
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        els.status.textContent = t("variantCopied", { n: i + 1 });
+      } catch {
+        els.prompt.value = text;
+        els.prompt.focus();
+        els.prompt.select();
+        document.execCommand("copy");
+        buildPrompt();
+        els.status.textContent = t("variantCopiedFallback", { n: i + 1 });
+      }
+      setTimeout(buildPrompt, 800);
+    });
+
+    const body = document.createElement("div");
+    body.className = "variantText";
+    body.textContent = text;
+
+    head.appendChild(idx);
+    head.appendChild(copyBtn);
+    item.appendChild(head);
+    item.appendChild(body);
+    els.variantsList.appendChild(item);
+  });
+}
+
+function generateTenVariants() {
+  const profile = PROFILES[currentProfileKey];
+  const scenario = getCurrentScenario(profile);
+  const current = state[currentProfileKey] || {};
+  const initialCamera = normalizeCamera(getCamera(currentProfileKey));
+  phoneOptOutState[currentProfileKey] = false;
+  const variants = [];
+  const usedSignatures = new Set();
+  const keyUsage = new Map([
+    ["location", new Map()],
+    ["outfit", new Map()],
+    ["pose", new Map()],
+  ]);
+
+  const targetCount = 10;
+  const strictAttempts = 300;
+  const mediumAttempts = 200;
+
+  for (let i = 0; i < targetCount; i++) {
+    let acceptedState = null;
+    let acceptedSignature = "";
+    let acceptedCamera = null;
+
+    for (let attempt = 0; attempt < strictAttempts; attempt++) {
+      const s = makeRandomStateWithLocks(profile, scenario, current);
+      const cameraCandidate = normalizeCamera(getCamera(currentProfileKey));
+      validateAndFixSelection(profile, s, scenario);
+      const signature = buildStateSignature(profile, s);
+      if (usedSignatures.has(signature)) continue;
+      if (!canUseKeyCategories(profile, s, keyUsage, 2)) continue;
+      acceptedState = s;
+      acceptedSignature = signature;
+      acceptedCamera = cameraCandidate;
+      break;
+    }
+
+    if (!acceptedState) {
+      for (let attempt = 0; attempt < mediumAttempts; attempt++) {
+        const s = makeRandomStateWithLocks(profile, scenario, current);
+        const cameraCandidate = normalizeCamera(getCamera(currentProfileKey));
+        validateAndFixSelection(profile, s, scenario);
+        const signature = buildStateSignature(profile, s);
+        if (usedSignatures.has(signature)) continue;
+        acceptedState = s;
+        acceptedSignature = signature;
+        acceptedCamera = cameraCandidate;
+        break;
+      }
+    }
+
+    if (!acceptedState) {
+      acceptedState = makeRandomStateWithLocks(profile, scenario, current);
+      acceptedCamera = normalizeCamera(getCamera(currentProfileKey));
+      validateAndFixSelection(profile, acceptedState, scenario);
+      acceptedSignature = buildStateSignature(profile, acceptedState);
+    }
+
+    usedSignatures.add(acceptedSignature);
+    trackKeyCategories(profile, acceptedState, keyUsage);
+    if (acceptedCamera) cameraState[currentProfileKey] = acceptedCamera;
+    const variantText = composePromptByState(profile, acceptedState, null, { syncCameraToSelection: true });
+    variants.push(variantText);
+  }
+
+  cameraState[currentProfileKey] = initialCamera;
+  renderCameraControls();
+  renderVariants(variants);
+  els.status.textContent = t("generatedTen");
+  setTimeout(buildPrompt, 800);
+}
+
+function clearAll() {
+  state[currentProfileKey] = {};
+  autoSelectionState[currentProfileKey] = { accessories: {} };
+  phoneRuleState[currentProfileKey] = { autoAdded: false, recommended: false, required: false, selected: false };
+  phoneOptOutState[currentProfileKey] = false;
+  lastAutoFixMessage = "";
+  renderAutoFixNotice("");
+  els.variantsList.innerHTML = "";
+  renderBlocks();
+  buildPrompt();
+}
+
+function randomize() {
+  const profile = PROFILES[currentProfileKey];
+  const scenario = getCurrentScenario(profile);
+  const current = state[currentProfileKey] || {};
+  phoneOptOutState[currentProfileKey] = false;
+  state[currentProfileKey] = makeRandomStateWithLocks(profile, scenario, current);
+  const fixResult = validateAndFixSelection(profile, state[currentProfileKey], scenario);
+  if (fixResult.changed) showAutoFixNotice(fixResult.message || t("sceneAutoFix"));
+  saveCameraState();
+  renderCameraControls();
+  renderBlocks();
+  buildPrompt({ source: "randomize" });
+  els.status.textContent = t("generatedRandom");
+  setTimeout(buildPrompt, 800);
+}
+
+function renderProfileSelect() {
+  const selected = currentProfileKey;
+  const keys = Object.keys(PROFILES);
+  els.profileSelect.innerHTML = "";
+  keys.forEach(k => {
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.className = "glass-dropdown-item";
+    opt.textContent = getProfileLabel(PROFILES[k]);
+    els.profileSelect.appendChild(opt);
+  });
+  els.profileSelect.value = selected;
+}
+
+function updateCameraFromInputs(source = "camera/input") {
+  const cam = getCamera(currentProfileKey);
+  const nextDistance = fromDistanceUiValue(Number(els.cameraDistance.value));
+  const activeBtn = els.viewModeSegment.querySelector(".segmentBtn.active");
+  const nextView = activeBtn?.dataset?.mode === "back" ? "back" : "front";
+  setByPath(`cameraState.${currentProfileKey}`, normalizeCamera({ ...cam, distanceM: nextDistance, viewMode: nextView }), source);
+}
+
+function setViewMode(mode, source = "camera/viewMode") {
+  const next = mode === "back" ? "back" : "front";
+  [els.viewModeFrontBtn, els.viewModeBackBtn].forEach((btn) => {
+    if (!btn) return;
+    btn.classList.toggle("active", btn.dataset.mode === next);
+  });
+  const cam = getCamera(currentProfileKey);
+  setByPath(`cameraState.${currentProfileKey}`, normalizeCamera({ ...cam, viewMode: next }), source);
+}
+
+function setAnglePadFromEvent(event) {
+  const pad = els.anglePad;
+  const rect = pad.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const point = event.touches ? event.touches[0] : event;
+  let dx = point.clientX - cx;
+  let dy = point.clientY - cy;
+  const radius = Math.max(10, Math.min(rect.width || 120, rect.height || 120) / 2 - 7);
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist > radius) {
+    const ratio = radius / dist;
+    dx *= ratio;
+    dy *= ratio;
+  }
+
+  const cam = getCamera(currentProfileKey);
+  const angleX = clamp(Number((dx / radius).toFixed(3)), -1, 1);
+  const altitudeY = clamp(Number(((-dy) / radius).toFixed(3)), -1, 1);
+  setByPath(`cameraState.${currentProfileKey}`, normalizeCamera({ ...cam, angleX, altitudeY }), "camera/anglePad");
+  renderCameraControls();
+}
+
+function setFocalMm(nextValue, source = "camera/focal") {
+  const cam = getCamera(currentProfileKey);
+  const focalMm = clamp(Math.round(Number(nextValue) || 35), FOCAL_MIN, FOCAL_MAX);
+  if (cam.focalMm === focalMm) return;
+  setByPath(`cameraState.${currentProfileKey}`, normalizeCamera({ ...cam, focalMm }), source);
+  onCameraInputsChanged(source);
+}
+
+function onCameraInputsChanged(source = "camera/input") {
+  const snapshotBefore = captureSelectionSnapshot();
+  updateCameraFromInputs(source);
+  saveCameraState();
+  renderCameraControls();
+  buildPrompt({ source, skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+  assertCameraDidNotChangeSelection(snapshotBefore, source);
+}
+
+function runCameraDistanceRepro() {
+  const originalCamera = normalizeCamera(getCamera(currentProfileKey));
+  const sequence = [DIST_MIN, 1.2, 2.1, 3.4, 4.8, DIST_MAX, 2.6, DIST_MIN, DIST_MAX, 1.8];
+  try {
+    sequence.forEach((distanceM, idx) => {
+      const source = `camera/repro-${idx + 1}`;
+      const before = captureSelectionSnapshot();
+      setByPath(
+        `cameraState.${currentProfileKey}`,
+        normalizeCamera({ ...getCamera(currentProfileKey), distanceM }),
+        source
+      );
+      saveCameraState();
+      renderCameraControls();
+      buildPrompt({ source, skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+      assertCameraDidNotChangeSelection(before, source);
+    });
+    els.status.textContent = "DEBUG: repro x10 OK";
+  } catch (err) {
+    console.error("[DEBUG] repro failed", err);
+    els.status.textContent = `DEBUG: repro fail (${err?.message || "unknown"})`;
+  } finally {
+    setByPath(`cameraState.${currentProfileKey}`, originalCamera, "camera/repro-restore");
+    saveCameraState();
+    renderCameraControls();
+    buildPrompt({ source: "camera/repro-restore", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+  }
+}
+
+function runCameraIsolationChecks() {
+  const checks = [];
+  const profile = PROFILES[currentProfileKey];
+  const scenario = getCurrentScenario(profile);
+  const originalCamera = normalizeCamera(getCamera(currentProfileKey));
+  const originalSelection = captureSelectionSnapshot();
+
+  try {
+    const beforeA = captureSelectionSnapshot();
+    setByPath(
+      `cameraState.${currentProfileKey}`,
+      normalizeCamera({ ...getCamera(currentProfileKey), distanceM: 4.2 }),
+      "camera/check-distance"
+    );
+    buildPrompt({ source: "camera/check-distance", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+    const diffA = selectionDiff(beforeA, captureSelectionSnapshot());
+    checks.push({ test: "A: changeDistance() keeps location/accessories", ok: diffA.length === 0 });
+
+    const beforeB = captureSelectionSnapshot();
+    setByPath(
+      `cameraState.${currentProfileKey}`,
+      normalizeCamera({ ...getCamera(currentProfileKey), focalMm: 70 }),
+      "camera/check-focal"
+    );
+    buildPrompt({ source: "camera/check-focal", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+    const diffB = selectionDiff(beforeB, captureSelectionSnapshot());
+    checks.push({ test: "B: changeFocal() keeps location/accessories", ok: diffB.length === 0 });
+
+    const accessoriesBlock = profile.blocks.find((b) => b.key === "accessories");
+    const headphonesIdx = accessoriesBlock?.items?.findIndex((item) => /headphones|науш/i.test(getItemSearchText(item))) ?? -1;
+    if (accessoriesBlock && headphonesIdx >= 0) {
+      const camBefore = normalizeCamera(getCamera(currentProfileKey));
+      toggleItem(accessoriesBlock, headphonesIdx);
+      const camAfter = normalizeCamera(getCamera(currentProfileKey));
+      checks.push({
+        test: "C: toggleAccessory(headphones) keeps camera.distance",
+        ok: camBefore.distanceM === camAfter.distanceM,
+      });
+      toggleItem(accessoriesBlock, headphonesIdx);
+    } else {
+      checks.push({ test: "C: headphones option missing (skip)", ok: true });
+    }
+
+    console.groupCollapsed("[DEBUG] camera isolation checks");
+    console.table(checks.map((row) => ({ Test: row.test, Result: row.ok ? "PASS" : "FAIL" })));
+    console.groupEnd();
+    els.status.textContent = checks.every((row) => row.ok) ? "DEBUG: checks PASS" : "DEBUG: checks FAIL";
+  } catch (err) {
+    console.error("[DEBUG] checks failed", err);
+    els.status.textContent = `DEBUG: checks fail (${err?.message || "unknown"})`;
+  } finally {
+    setByPath(`cameraState.${currentProfileKey}`, originalCamera, "camera/check-restore");
+    state[currentProfileKey] = originalSelection;
+    sanitizeStateByScenario(profile, state[currentProfileKey], scenario);
+    saveCameraState();
+    renderBlocks();
+    renderCameraControls();
+    buildPrompt({ source: "camera/check-restore", skipAutoRules: true, skipEnforce: true, skipSanitize: true });
+  }
+}
+
+function runQuickRuleChecks() {
+  const engine = window.PROMPT_CONSTRAINTS;
+  if (!engine) return;
+  const allIndices = (block) => [...Array(block.items.length).keys()];
+  const checks = [];
+
+  function findProfileFor(rule) {
+    for (const [key, profile] of Object.entries(PROFILES)) {
+      if (rule(profile)) return { key, profile };
+    }
+    return null;
+  }
+
+  function findIndex(profile, blockKey, regex) {
+    const block = profile.blocks.find(b => b.key === blockKey);
+    if (!block) return -1;
+    return block.items.findIndex(item => regex.test(getItemSearchText(item)));
+  }
+
+  const glassesCase = findProfileFor((profile) => (
+    findIndex(profile, "pose", /(fix|adjust).*(glasses)|поправля.*очк/i) >= 0
+    && findIndex(profile, "accessories", /glasses|очки/i) >= 0
+  ));
+  if (glassesCase) {
+    const { profile } = glassesCase;
+    const s = { pose: findIndex(profile, "pose", /(fix|adjust).*(glasses)|поправля.*очк/i), accessories: [] };
+    engine.applyAutoRules(profile, s, { getAllowedIndices: allIndices, isLocked: () => false, forcePhone: true });
+    checks.push({
+      test: "pose=fix glasses => accessories include glasses",
+      ok: Array.isArray(s.accessories) && s.accessories.includes(findIndex(profile, "accessories", /glasses|очки/i)),
+    });
+  }
+
+  const elevatorCase = findProfileFor((profile) => (
+    findIndex(profile, "location", /elevator|лифт/i) >= 0
+    && findIndex(profile, "pose", /bench|seated on bench|скамей/i) >= 0
+  ));
+  if (elevatorCase) {
+    const { profile } = elevatorCase;
+    const benchPose = findIndex(profile, "pose", /bench|seated on bench|скамей/i);
+    const s = {
+      location: findIndex(profile, "location", /elevator|лифт/i),
+      pose: benchPose,
+      accessories: [],
+    };
+    engine.applyAutoRules(profile, s, { getAllowedIndices: allIndices, isLocked: () => false, forcePhone: true });
+    checks.push({
+      test: "location=elevator + pose=bench => pose auto replaced",
+      ok: s.pose !== benchPose,
+    });
+  }
+
+  const mirrorCase = findProfileFor((profile) => (
+    findIndex(profile, "location", /bathroom|mirror|ванн|зеркал/i) >= 0
+    && findIndex(profile, "accessories", /phone|iphone|телефон/i) >= 0
+  ));
+  if (mirrorCase) {
+    const { profile } = mirrorCase;
+    const phoneIdx = findIndex(profile, "accessories", /phone|iphone|телефон/i);
+    const s = {
+      location: findIndex(profile, "location", /bathroom|mirror|ванн|зеркал/i),
+      accessories: [],
+    };
+    engine.applyAutoRules(profile, s, { getAllowedIndices: allIndices, isLocked: () => false, forcePhone: true });
+    checks.push({
+      test: "mirror scene => phone auto added",
+      ok: Array.isArray(s.accessories) && s.accessories.includes(phoneIdx),
+    });
+  }
+
+  const profile = PROFILES[currentProfileKey];
+  const scenario = getCurrentScenario(profile);
+  const shotCount = new Map();
+  const angleCount = new Map();
+  const initialCamera = normalizeCamera(getCamera(currentProfileKey));
+
+  for (let i = 0; i < 50; i++) {
+    const s = makeRandomState(profile, scenario);
+    const shotId = getSingleOptionId(profile, s, "shot_size");
+    const angleId = getSingleOptionId(profile, s, "camera_angle");
+    if (shotId) shotCount.set(shotId, (shotCount.get(shotId) || 0) + 1);
+    if (angleId) angleCount.set(angleId, (angleCount.get(angleId) || 0) + 1);
+  }
+  checks.push({ test: "random x50 => shot/angle variation exists", ok: shotCount.size >= 4 && angleCount.size >= 4 });
+
+  cameraState[currentProfileKey] = normalizeCamera({ ...initialCamera, distanceM: 0.35 });
+  const sClose = {};
+  const closeLine = buildCameraDirective(profile, sClose, "EN").join(" ").toLowerCase();
+  checks.push({
+    test: "distance=0.35 => extreme close-up",
+    ok: closeLine.includes("extreme close-up") && !closeLine.includes("full-body"),
+  });
+
+  cameraState[currentProfileKey] = normalizeCamera({ ...initialCamera, focalMm: 85 });
+  checks.push({
+    test: "focal=85 => telephoto lens directive",
+    ok: buildLensDirective("EN").toLowerCase().includes("telephoto"),
+  });
+
+  cameraState[currentProfileKey] = normalizeCamera({ ...initialCamera, altitudeY: 0.7, distanceM: 1.8 });
+  const sPitch = {};
+  const pitchLine = buildCameraDirective(profile, sPitch, "EN").join(" ").toLowerCase();
+  checks.push({ test: "altitude=+0.7 => high angle", ok: pitchLine.includes("high angle") });
+
+  cameraState[currentProfileKey] = normalizeCamera({ ...initialCamera, angleX: 0.8, distanceM: 1.8, viewMode: "front" });
+  const sYaw = {};
+  const yawLine = buildCameraDirective(profile, sYaw, "EN").join(" ").toLowerCase();
+  checks.push({ test: "angleX=0.8 => side angle", ok: yawLine.includes("side profile") || yawLine.includes("side angle") });
+
+  cameraState[currentProfileKey] = normalizeCamera({ ...initialCamera, viewMode: "back", distanceM: 1.8, angleX: 0.1 });
+  const sRoll = {};
+  const rollLine = buildCameraDirective(profile, sRoll, "EN").join(" ").toLowerCase();
+  checks.push({ test: "viewMode=back => back view", ok: rollLine.includes("back view") });
+
+  if (mirrorCase) {
+    const mirrorProfile = mirrorCase.profile;
+    const sMirror = {
+      location: findIndex(mirrorProfile, "location", /bathroom|mirror|ванн|зеркал/i),
+      accessories: [],
+    };
+    cameraState[currentProfileKey] = normalizeCamera({
+      ...initialCamera,
+      viewMode: "back",
+    });
+    syncCameraToSelection(mirrorProfile, sMirror, getCamera(currentProfileKey));
+    const mirrorRes = engine.applyAutoRules(mirrorProfile, sMirror, { getAllowedIndices: allIndices, isLocked: () => false, forcePhone: true });
+    validateAndFixSelection(mirrorProfile, sMirror, scenario);
+    checks.push({
+      test: "mirror scene + back => auto-fix front and phone",
+      ok: Boolean(mirrorRes.phoneAutoAdded || (Array.isArray(sMirror.accessories) && sMirror.accessories.length > 0)),
+    });
+    checks.push({
+      test: "mirror scene + back => viewMode fixed",
+      ok: getCamera(currentProfileKey).viewMode !== "back",
+    });
+  }
+
+  const walkingIdx = findIndex(profile, "pose", /walking|идет|идёт|шага/i);
+  if (walkingIdx >= 0) {
+    const sWalk = { pose: walkingIdx };
+    cameraState[currentProfileKey] = normalizeCamera({ ...initialCamera, distanceM: 0.6 });
+    const shifted = enforceCameraCompatibility(profile, sWalk);
+    checks.push({
+      test: "pose=walking + distance=0.6 => auto-shift >=2.1",
+      ok: shifted && getCamera(currentProfileKey).distanceM >= 2.1,
+    });
+  }
+
+  cameraState[currentProfileKey] = initialCamera;
+
+  if (checks.length) {
+    const formatted = checks.map(entry => ({ Test: entry.test, Result: entry.ok ? "PASS" : "FAIL" }));
+    console.groupCollapsed("[Prompt Builder] Quick constraints checks");
+    console.table(formatted);
+    console.log("shot distribution (50):", Object.fromEntries(shotCount));
+    console.log("angle distribution (50):", Object.fromEntries(angleCount));
+    console.groupEnd();
+  }
+}
+
+(function init() {
+  els.profileSelect.addEventListener("change", (e) => setProfile(e.target.value));
+  els.scenarioSelect.addEventListener("change", (e) => setScenario(e.target.value));
+  els.saveCharacterMasterBtn.addEventListener("click", saveCharacterMaster);
+  els.defaultCharacterMasterBtn.addEventListener("click", insertDefaultCharacterMaster);
+  els.saveStabilityBtn.addEventListener("click", saveStability);
+  els.defaultStabilityBtn.addEventListener("click", insertDefaultStability);
+  els.cameraDistance.addEventListener("input", () => onCameraInputsChanged("camera/distance"));
+  let fovDragging = false;
+  let fovStartY = 0;
+  let fovStartMM = 35;
+  const fovSensitivity = 0.45;
+  const onFovMove = (e) => {
+    if (!fovDragging) return;
+    e.preventDefault();
+    const point = e.touches ? e.touches[0] : e;
+    const dy = fovStartY - point.clientY;
+    setFocalMm(fovStartMM + dy * fovSensitivity, "camera/focal-drag");
+  };
+  const onFovUp = () => {
+    fovDragging = false;
+    if (els.distanceTrackWrap) els.distanceTrackWrap.classList.remove("dragging");
+  };
+  els.cameraFovHandle.addEventListener("mousedown", (e) => {
+    fovDragging = true;
+    fovStartY = e.clientY;
+    fovStartMM = getCamera(currentProfileKey).focalMm;
+    if (els.distanceTrackWrap) els.distanceTrackWrap.classList.add("dragging");
+  });
+  els.cameraFovHandle.addEventListener("touchstart", (e) => {
+    fovDragging = true;
+    fovStartY = (e.touches?.[0]?.clientY) || 0;
+    fovStartMM = getCamera(currentProfileKey).focalMm;
+    if (els.distanceTrackWrap) els.distanceTrackWrap.classList.add("dragging");
+  }, { passive: true });
+  els.cameraFovHandle.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const step = e.shiftKey ? 5 : 1;
+    const delta = e.deltaY < 0 ? step : -step;
+    setFocalMm(getCamera(currentProfileKey).focalMm + delta, "camera/focal-wheel");
+  }, { passive: false });
+  els.cameraFovHandle.addEventListener("dblclick", () => setFocalMm(35, "camera/focal-reset"));
+  window.addEventListener("mousemove", onFovMove, { passive: false });
+  window.addEventListener("touchmove", onFovMove, { passive: false });
+  window.addEventListener("mouseup", onFovUp);
+  window.addEventListener("touchend", onFovUp);
+  window.addEventListener("touchcancel", onFovUp);
+  window.addEventListener("resize", renderCameraControls);
+  els.viewModeFrontBtn.addEventListener("click", () => { setViewMode("front", "camera/view-front"); onCameraInputsChanged("camera/view-front"); });
+  els.viewModeBackBtn.addEventListener("click", () => { setViewMode("back", "camera/view-back"); onCameraInputsChanged("camera/view-back"); });
+  els.angleResetBtn.addEventListener("click", () => {
+    const cam = getCamera(currentProfileKey);
+    setViewMode("front", "camera/angle-reset");
+    setByPath(`cameraState.${currentProfileKey}`, normalizeCamera({ ...cam, angleX: 0, altitudeY: 0, viewMode: "front" }), "camera/angle-reset");
+    onCameraInputsChanged("camera/angle-reset");
+  });
+
+  let draggingAngle = false;
+  const onMove = (e) => {
+    if (!draggingAngle) return;
+    e.preventDefault();
+    setAnglePadFromEvent(e);
+    onCameraInputsChanged("camera/anglePad");
+  };
+  const onUp = () => { draggingAngle = false; };
+  els.anglePad.addEventListener("mousedown", (e) => {
+    draggingAngle = true;
+    setAnglePadFromEvent(e);
+    onCameraInputsChanged("camera/anglePad");
+  });
+  els.anglePad.addEventListener("touchstart", (e) => {
+    draggingAngle = true;
+    setAnglePadFromEvent(e);
+    onCameraInputsChanged("camera/anglePad");
+  }, { passive: false });
+  window.addEventListener("mousemove", onMove, { passive: false });
+  window.addEventListener("touchmove", onMove, { passive: false });
+  window.addEventListener("mouseup", onUp);
+  window.addEventListener("touchend", onUp);
+  els.stylePackSelect.addEventListener("change", () => {
+    stylePackId = getStylePackById(els.stylePackSelect.value);
+    saveStylePack(stylePackId);
+    buildPrompt();
+  });
+  els.realismGuard.addEventListener("change", () => {
+    realismGuardEnabled = Boolean(els.realismGuard.checked);
+    saveRealismGuard(realismGuardEnabled);
+    buildPrompt();
+  });
+  els.includeMaster.addEventListener("change", buildPrompt);
+  els.includeSafeBlock.addEventListener("change", buildPrompt);
+  els.includeStability.addEventListener("change", buildPrompt);
+
+  els.uiLangSelect.addEventListener("change", () => {
+    uiLang = els.uiLangSelect.value === "en" ? "en" : "ru";
+    saveUiLang(uiLang);
+    applyStaticI18n();
+    renderProfileSelect();
+    renderScenarioSelect();
+    renderBlocks();
+    renderPhoneReference();
+    buildPrompt();
+  });
+
+  els.promptLangSelect.addEventListener("change", () => {
+    promptLang = els.promptLangSelect.value === "ru" ? "ru" : "en";
+    savePromptLang(promptLang);
+    renderCharacterEditor();
+    renderStabilityEditor();
+    renderPhoneReference();
+    buildPrompt();
+  });
+  els.copyBtn.addEventListener("click", copyPrompt);
+  els.randomBtn.addEventListener("click", randomize);
+  els.unlockAllBtn.addEventListener("click", clearAllLocks);
+  els.tenVariantsBtn.addEventListener("click", generateTenVariants);
+  els.clearBtn.addEventListener("click", clearAll);
+
+  if (DEBUG) {
+    if (els.debugCopyBtn) {
+      els.debugCopyBtn.addEventListener("click", async () => {
+        const text = debugEvents.map((e) => JSON.stringify(e)).join("\n");
+        try {
+          await navigator.clipboard.writeText(text || "[]");
+          els.status.textContent = "DEBUG: log copied";
+        } catch {
+          els.status.textContent = "DEBUG: copy failed";
+        }
+      });
+    }
+    if (els.debugRunReproBtn) {
+      els.debugRunReproBtn.addEventListener("click", runCameraDistanceRepro);
+    }
+    if (els.debugRunChecksBtn) {
+      els.debugRunChecksBtn.addEventListener("click", runCameraIsolationChecks);
+    }
+  }
+
+  promptLang = loadPromptLang();
+  uiLang = loadUiLang(promptLang);
+  stylePackId = loadStylePack();
+  realismGuardEnabled = loadRealismGuard();
+  els.promptLangSelect.value = promptLang;
+  els.uiLangSelect.value = uiLang;
+  els.realismGuard.checked = realismGuardEnabled;
+
+  applyStaticI18n();
+  renderProfileSelect();
+  loadCharacterMaster();
+  loadStability();
+  renderCharacterEditor();
+  renderStabilityEditor();
+  loadLocks();
+  loadCameraState();
+  validateLocalization();
+  els.profileSelect.value = currentProfileKey;
+  setProfile(currentProfileKey);
+  if (DEBUG) runQuickRuleChecks();
+})();
+</script>
+</body>
+</html>
