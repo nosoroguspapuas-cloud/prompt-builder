@@ -53,3 +53,17 @@ python3 -m http.server 8000
 ## Stop server
 
 `Ctrl+C`
+
+## Leak protection
+
+Pre-commit hook создаётся автоматически через script:
+
+```bash
+./scripts/precommit-check.sh --install-hook
+```
+
+Этот hook блокирует коммиты, если в staged есть:
+- `private/` и `private-core/`
+- `.env*` и `*.env`
+- `*.key` и `*.pem`
+- корневые `matrices.js` и `constraints.js`
