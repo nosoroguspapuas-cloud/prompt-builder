@@ -943,7 +943,7 @@
   function writeScript(src, onErrorCode) {
     var attrs = ' src="' + src + '"';
     if (onErrorCode) attrs += ' onerror="' + onErrorCode + '"';
-    document.write("<script" + attrs + "><\\/script>");
+    document.write("<script" + attrs + "><" + "/script>");
   }
 
   var host = String((window.location && window.location.hostname) || "").toLowerCase();
@@ -954,7 +954,7 @@
   writeScript(sampleConstraintsUrl, "console.error('[PROD] Failed to load sample/constraints.sample.js')");
 
   if (forceSample) {
-    document.write('<script>console.log("[PROD] Loaded sample core")<\\/script>');
+    document.write('<script>console.log("[PROD] Loaded sample core")<' + "/script>");
     return;
   }
 
@@ -962,7 +962,7 @@
   window.__privateCoreFailed = false;
   writeScript(privateMatricesUrl, "window.__privateCoreFailed=true;console.error('[DEV] Failed to load matrices.js')");
   writeScript(privateConstraintsUrl, "window.__privateCoreFailed=true;console.error('[DEV] Failed to load constraints.js')");
-  document.write('<script>if(window.__privateCoreFailed){console.log("[PROD] Loaded sample core")}else{console.log("[DEV] Loaded private core")}<\\/script>');
+  document.write('<script>if(window.__privateCoreFailed){console.log("[PROD] Loaded sample core")}else{console.log("[DEV] Loaded private core")}<' + "/script>");
 })();
 </script>
 <script>
