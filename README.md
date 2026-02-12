@@ -1,33 +1,37 @@
-# Prompt Builder (OpenAI Vision)
+# README
 
-## Быстрый старт
+## 1) Как открыть проект в VS Code
 
-1. Создайте `server/.env`:
-
-```bash
-cp server/.env.example server/.env
-```
-
-2. Вставьте ключ в `server/.env`:
-
-```env
-OPENAI_API_KEY=sk-...
-```
-
-3. Дайте права и запустите:
+1. Откройте терминал в папке проекта.
+2. Выполните:
 
 ```bash
-chmod +x start.command stop.command restart.command
-./start.command
+code .
 ```
 
-## Проверка
+## 2) Как проверить, что git работает
 
 ```bash
-./start.command
-open http://localhost:5173
-curl http://localhost:8787/health
+git status
 ```
 
-Если `health` вернул `{"ok":false,"error":"NO_KEY"}`, проверьте `server/.env`.
+## 3) Как сделать первый коммит
 
+1. Добавьте все файлы:
+
+```bash
+git add .
+```
+
+2. Сделайте коммит:
+
+```bash
+git commit -m "Initial version"
+```
+
+## 4) Как проверить Node
+
+```bash
+node -v
+npm -v
+```
