@@ -1,3 +1,4 @@
+All changes should go through Pull Requests (PR).
 # README
 
 ## 1) Как открыть проект в VS Code
