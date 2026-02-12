@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Leak scan
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          forbidden=""
+
+          while IFS= read -r path; do
+            forbidden+="$path (private/)"$'\n'
+          done < <(find private -type f 2>/dev/null || true)
+
+          while IFS= read -r path; do
+            forbidden+="$path (private-core/)"$'\n'
+          done < <(find private-core -type f 2>/dev/null || true)
+
+          while IFS= read -r path; do
+            forbidden+="$path (.env pattern)"$'\n'
+          done < <(find . -type f \( -name '.env' -o -name '.env.*' -o -name '*.env' \) -not -path './.git/*')
+
+          while IFS= read -r path; do
+            forbidden+="$path (key/pem)"$'\n'
+          done < <(find . -type f \( -name '*.key' -o -name '*.pem' \) -not -path './.git/*')
+
+          if [[ -f matrices.js ]]; then
+            forbidden+="matrices.js (root core file)"$'\n'
+          fi
+
+          if [[ -f constraints.js ]]; then
+            forbidden+="constraints.js (root core file)"$'\n'
+          fi
+
+          if [[ -n "$forbidden" ]]; then
+            echo "Forbidden files detected:"
+            printf '%s' "$forbidden"
+            exit 1
+          fi
+
+          echo "Leak scan passed"
+
+      - name: Smoke check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f index.html
+          test -f sample/matrices.sample.js
+          test -f sample/constraints.sample.js
+
+          grep -Fq "[DEV] Loaded private core" index.html
+          grep -Fq "[PROD] Loaded sample core" index.html
+
+          echo "Smoke check passed"

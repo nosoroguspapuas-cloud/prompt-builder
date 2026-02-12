@@ -67,3 +67,10 @@ Pre-commit hook создаётся автоматически через script:
 - `.env*` и `*.env`
 - `*.key` и `*.pem`
 - корневые `matrices.js` и `constraints.js`
+
+## CI
+
+Для `pull_request` и `push` в `main` запускается GitHub Actions workflow `CI`.
+Он выполняет:
+- leak scan по всему репозиторию (не только staged)
+- smoke check структуры (`index.html`, sample core) и DEV/PROD loader строк в `index.html`
