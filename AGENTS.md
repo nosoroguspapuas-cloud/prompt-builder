@@ -2,8 +2,8 @@
 
 ## 1) Repository Goal
 
-This repository is a public Prompt Builder UI shell that loads private core from backend endpoints.
-It must remain safe for open collaboration without exposing core matrices/constraints.
+This repository is a public Prompt Builder UI with sample core data.
+It must remain safe for open access, demos, and collaboration.
 
 ## 2) Global Rules
 
@@ -25,7 +25,7 @@ It must remain safe for open collaboration without exposing core matrices/constr
 
 Responsibilities:
 - `index.html`, visual/UI behavior, UX text, client-side interaction.
-- Preserve app behavior and compatibility with private backend core loader.
+- Preserve app behavior and compatibility with sample core fallback.
 
 Restrictions:
 - Must not introduce or expose private core data.
@@ -34,7 +34,7 @@ Restrictions:
 ### Core Agent
 
 Responsibilities:
-- Public-private contract consistency (frontend input/output contract), schema compatibility, data integrity.
+- Public sample core consistency (`sample/*`), schema compatibility, data integrity.
 - Coordinate with private-core maintainers when interface contracts change.
 
 Restrictions:
