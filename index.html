@@ -926,38 +926,38 @@
 
 <script>
 (function () {
-  function exists(url) {
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open("HEAD", url, false);
-      xhr.send(null);
-      return xhr.status >= 200 && xhr.status < 400;
-    } catch (err) {
-      return false;
-    }
+  var privateMatricesUrl = new URL("matrices.js", location.href).toString();
+  var privateConstraintsUrl = new URL("constraints.js", location.href).toString();
+  var sampleMatricesUrl = new URL("sample/matrices.sample.js", location.href).toString();
+  var sampleConstraintsUrl = new URL("sample/constraints.sample.js", location.href).toString();
+
+  function writeScript(src, onErrorCode) {
+    var attrs = ' src="' + src + '"';
+    if (onErrorCode) attrs += ' onerror="' + onErrorCode + '"';
+    document.write("<script" + attrs + "><\\/script>");
   }
 
-  var privateMatrices = "./private-core/private/matrices.js";
-  var privateConstraints = "./private-core/private/constraints.js";
-  var sampleMatrices = "./sample/matrices.sample.js";
-  var sampleConstraints = "./sample/constraints.sample.js";
-
-  var host = String((window.location && window.location.hostname) || "").toLowerCase();
-  var FORCE_SAMPLE = host.endsWith("github.io");
-  var usePrivate = !FORCE_SAMPLE && exists(privateMatrices) && exists(privateConstraints);
-  var first = usePrivate ? privateMatrices : sampleMatrices;
-  var second = usePrivate ? privateConstraints : sampleConstraints;
-
-  document.write('<script src="' + first + '"><\\/script>');
-  document.write('<script src="' + second + '"><\\/script>');
-
-  if (FORCE_SAMPLE) {
-    console.log("[PAGES] Loaded sample core");
-  } else if (usePrivate) {
-    console.log("[DEV] Loaded private core");
-  } else {
-    console.log("[PROD] Loaded sample core");
+  function loadSample() {
+    writeScript(sampleMatricesUrl, "console.error('[PROD] Failed to load sample/matrices.sample.js')");
+    writeScript(sampleConstraintsUrl, "console.error('[PROD] Failed to load sample/constraints.sample.js')");
+    document.write('<script>console.log("[PROD] Loaded sample core")<\\/script>');
   }
+
+  window.__coreLoader = {
+    privateFailed: false,
+    sampleLoaded: false,
+    onPrivateError: function () {
+      this.privateFailed = true;
+      if (!this.sampleLoaded) {
+        this.sampleLoaded = true;
+        loadSample();
+      }
+    },
+  };
+
+  writeScript(privateMatricesUrl, "window.__coreLoader.onPrivateError()");
+  writeScript(privateConstraintsUrl, "window.__coreLoader.onPrivateError()");
+  document.write('<script>if(!window.__coreLoader.privateFailed){console.log("[DEV] Loaded private core")}<\\/script>');
 })();
 </script>
 <script>
