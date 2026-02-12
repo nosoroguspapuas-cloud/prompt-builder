@@ -1,0 +1,4 @@
+[submodule "private-core"]
+	path = private-core
+	url = https://github.com/nosoroguspapuas-cloud/prompt-builder-private-core.git
+	branch = main
