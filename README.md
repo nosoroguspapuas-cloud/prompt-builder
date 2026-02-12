@@ -2,6 +2,10 @@
 
 Public Prompt Builder UI with sample core fallback.
 
+## Release notes
+
+- Latest hardening release: see `CHANGELOG.md`.
+
 ## Requirements
 
 - Node.js + npm
