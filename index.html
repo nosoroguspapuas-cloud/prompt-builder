@@ -912,10 +912,42 @@
     <pre class="debugLog" id="debugLog"></pre>
   </div>
 
-<script src="sample/matrices.sample.js"></script>
-<script src="sample/constraints.sample.js"></script>
 <script>
-const RAW_PROFILES = window.PROFILES_DATA || {};
+(function () {
+  function exists(url) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open("HEAD", url, false);
+      xhr.send(null);
+      return xhr.status >= 200 && xhr.status < 400;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  var privateMatrices = "./private/matrices.js";
+  var privateConstraints = "./private/constraints.js";
+  var sampleMatrices = "./sample/matrices.sample.js";
+  var sampleConstraints = "./sample/constraints.sample.js";
+
+  var usePrivate = exists(privateMatrices) && exists(privateConstraints);
+  var first = usePrivate ? privateMatrices : sampleMatrices;
+  var second = usePrivate ? privateConstraints : sampleConstraints;
+
+  document.write('<script src="' + first + '"><\\/script>');
+  document.write('<script src="' + second + '"><\\/script>');
+
+  if (usePrivate) {
+    console.log("[DEV] Loaded private core");
+  } else {
+    console.log("[PROD] Loaded sample core");
+  }
+})();
+</script>
+<script>
+window.PROFILES_DATA = window.PROFILES_DATA || {};
+window.PROMPT_CONSTRAINTS = window.PROMPT_CONSTRAINTS || {};
+const RAW_PROFILES = window.PROFILES_DATA;
 const PHONE_KIT = {
   enabled: true,
   promptEn: "same phone model in all images, consistent phone color and camera layout.",
