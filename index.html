@@ -961,13 +961,16 @@
   var forceSample = host.endsWith("github.io");
   var usePrivate = !forceSample && exists(privateMatricesUrl) && exists(privateConstraintsUrl);
 
+  // Always load sample core first to guarantee public/Pages availability.
+  writeScript(sampleMatricesUrl, "console.error('[PROD] Failed to load sample/matrices.sample.js')");
+  writeScript(sampleConstraintsUrl, "console.error('[PROD] Failed to load sample/constraints.sample.js')");
+
   if (usePrivate) {
+    // In local DEV, override sample data with private core when available.
     writeScript(privateMatricesUrl, "console.error('[DEV] Failed to load matrices.js')");
     writeScript(privateConstraintsUrl, "console.error('[DEV] Failed to load constraints.js')");
     document.write('<script>console.log("[DEV] Loaded private core")<\\/script>');
   } else {
-    writeScript(sampleMatricesUrl, "console.error('[PROD] Failed to load sample/matrices.sample.js')");
-    writeScript(sampleConstraintsUrl, "console.error('[PROD] Failed to load sample/constraints.sample.js')");
     document.write('<script>console.log("[PROD] Loaded sample core")<\\/script>');
   }
 })();
@@ -975,6 +978,9 @@
 <script>
 window.PROFILES_DATA = window.PROFILES_DATA || {};
 window.PROMPT_CONSTRAINTS = window.PROMPT_CONSTRAINTS || {};
+if (!Object.keys(window.PROFILES_DATA).length || !Object.keys(window.PROMPT_CONSTRAINTS).length) {
+  console.error("[CORE] Core data is missing after loader initialization");
+}
 const RAW_PROFILES = window.PROFILES_DATA;
 const PHONE_KIT = {
   enabled: true,
