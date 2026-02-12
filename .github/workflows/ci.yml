@@ -18,6 +18,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache: npm
+          cache-dependency-path: server/package-lock.json
 
       - name: Leak scan
         shell: bash
@@ -57,6 +59,18 @@ jobs:
           fi
 
           echo "Leak scan passed"
+
+      - name: Install backend dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --prefix server
+
+      - name: Runtime checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check
 
       - name: Smoke check
         shell: bash

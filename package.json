@@ -1,14 +1,13 @@
 {
-  "name": "prompt-builder-backend",
+  "name": "prompt-builder",
   "version": "1.0.0",
   "private": true,
-  "description": "Local backend entrypoint for Prompt Builder",
-  "main": "server.js",
+  "description": "Prompt Builder workspace scripts",
   "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "start": "npm --prefix server run start",
+    "dev": "npm --prefix server run dev",
+    "check": "npm --prefix server run check && node test.js",
+    "frontend:serve": "npm --prefix frontend run serve",
+    "hook:install": "./scripts/precommit-check.sh --install-hook"
   }
 }
